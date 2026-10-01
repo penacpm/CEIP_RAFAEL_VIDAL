@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>¿Dónde está cada maestro?</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--ink:#1b2733;--muted:#6b7a89;--line:#d9e0e7;--accent:#1f5f8b;--accent-soft:#e3eef6;--free:#eef1f4;--recreo:#fdf0d5}
+@media (prefers-color-scheme:dark){:root{--bg:#141a21;--card:#1d252e;--ink:#e6ecf1;--muted:#93a3b3;--line:#303b47;--accent:#6db3e0;--accent-soft:#23384a;--free:#232c36;--recreo:#3b3220}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:20px 16px 0;max-width:960px;margin:0 auto}
+h1{font-size:1.4rem;margin:0 0 12px}
+nav{display:flex;gap:4px;border-bottom:2px solid var(--line)}
+nav button{font:inherit;background:none;border:0;padding:10px 16px;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px}
+nav button[aria-selected=true]{color:var(--accent);border-color:var(--accent);font-weight:600}
+main{max-width:960px;margin:0 auto;padding:16px}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.names{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.names button{font:inherit;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer}
+.names button[aria-pressed=true]{background:var(--accent);color:#fff;border-color:var(--accent)}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:640px;background:var(--card)}
+th,td{border:1px solid var(--line);padding:8px;text-align:center;font-size:.92rem}
+th{background:var(--accent-soft)}
+th.h{white-space:nowrap;text-align:left;font-weight:600}
+td.libre{background:var(--free);color:var(--muted)}
+td.recreo,th.recreo{background:var(--recreo);color:var(--muted)}
+#t2 td.sel{background:var(--accent);color:#fff}
+.slot{width:100%;font:inherit;background:var(--card);color:var(--ink);border:0;cursor:pointer;padding:10px 4px}
+.slot:hover{background:var(--accent-soft)}
+td.sel .slot{background:var(--accent);color:#fff}
+td.ahora{box-shadow:inset 0 0 0 3px #e0a100}
+.panel{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+.panel h2{margin:0 0 10px;font-size:1.1rem}
+.row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line)}
+.row.libre span:last-child{color:var(--muted)}
+.hint{color:var(--muted)}
+.nota{font-size:.85rem;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<!-- ============ DATOS: EDITA SOLO ESTA PARTE ============ -->
+<script>
+const DIAS = ["Lunes","Martes","Miércoles","Jueves","Viernes"];
+
+// Tramos horarios. "recreo:true" marca el recreo.
+const TRAMOS = [
+  {hora:"9:00 – 10:00"},
+  {hora:"10:00 – 11:00"},
+  {hora:"11:00 – 11:45"},
+  {hora:"11:45 – 12:15", recreo:true},
+  {hora:"12:15 – 13:00"},
+  {hora:"13:00 – 13:30"},
+  {hora:"13:30 – 14:00"},
+];
+
+// Horario vacío: 5 días x 7 tramos (todo "Libre" hasta que se rellene).
+const VACIO = () => Array.from({length:5}, () => Array(7).fill(""));
+
+// Cada maestro tiene 5 días (L a V) y, por día, un valor por tramo
+// en el orden de TRAMOS (el 4º es el recreo y se ignora).
+// Escribe dónde está ("1º A", "Gimnasio"...). Vacío "" = Libre.
+// Ejemplo para rellenar a mano:
+//   {nombre:"Eli", horario:[
+//     ["1º A","1º A","Inglés 3º","","1º A","Biblioteca","1º A"],   // Lunes
+//     ["...","...","...","","...","...","..."],                     // Martes
+//     [...], [...], [...]                                           // Miércoles, Jueves, Viernes
+//   ]},
+const MAESTROS = [
+  {nombre:"Antonio Dorador", horario:[["AP. Familias", "Act. PC", "Func. Direcc", "", "Coord. Convivencia", "Act. PC", "Act. PC"], ["Func. Direcc", "Coord. TDE", "Func. Direcc", "", "Func. Direcc", "Func. Direcc", "Func. Direcc"], ["Func. Direcc", "Func. Direcc", "Func. Direcc", "", "", "Func. Direcc", "Func. Direcc"], ["Robótica 6º", "Coord. TDE", "Coord. Convivencia", "", "Func. Direcc", "Func. Direcc", "Func. Direcc"], ["Robótica 5º / Act. PC", "Coord. Convivencia", "", "", "Func. Direcc", "AP. Familias", "AP. Familias"]]},
+  {nombre:"Eli", horario:[["Func. Direcc", "Func. Direcc", "2º", "", "1º", "", ""], ["Biblioteca", "Coord. Ciclo", "Func. Direcc", "", "1º", "5º", "5º"], ["Biblioteca", "5º", "Func. Direcc", "", "2º", "6º", "6º"], ["Biblioteca", "Func. Direcc", "2º", "", "1º", "6º", "6º"], ["Func. Direcc", "6º", "2º", "", "1º", "5º", "5º"]]},
+  {nombre:"Maribel", horario:VACIO()},   // pendiente
+  {nombre:"Celia", horario:[["", "", "", "", "Func. Direcc", "", ""], ["", "", "", "", "Func. Direcc", "", ""], ["", "", "", "", "", "", ""], ["", "", "Func. Direcc", "", "Func. Direcc", "", ""], ["", "", "", "", "Func. Direcc", "", ""]]},
+  {nombre:"Loli", horario:VACIO()},   // pendiente
+  {nombre:"Mª José Soto", horario:[["1º Lengua", "1º Atedu", "1º Mates", "", "Inf. 4 años", ">> 55 años", ">> 55 años"], ["Inf. 3 años", "1º Lengua", "1º Mates", "", "Inf. 4 años", "1º C. Medio", "1º C. Medio"], ["1º Lengua", "1º C. Medio", "1º Mates", "", "1º Mates", "1º Lengua", "1º Lengua"], ["1º Lengua", "1º Mates", "Inf. 4 años", "", "Inf. 4 años", "1º Atedu", "1º C. Medio"], ["1º Lengua", "1º Mates", ">> 55 años", "", "Inf. 4 años", "1º Plástica", "1º Plástica"]]},
+  {nombre:"Susi", horario:[["Coord. Ciclo", "2º Lengua", "Ref. 1º Mates", "", "Ref. 2º Inglés", "1º Mates", "1º Mates"], ["2º Lengua", "2º Mates", "Ref. 1º Mates", "", "2º Lengua", "Ref. 2º Inglés", "Ref. 2º Inglés"], ["2º Lengua", "2º Mates", "2º Mates", "", "Ref. 1º Mates", "2º C. Medio", "2º C. Medio"], ["2º Lengua", "2º Mates", "Ref. 5º Mates", "", "2º Plástica", "2º C. Medio", "2º C. Medio"], ["2º Lengua", "2º Mates", "Ref. 4º Mates", "", "Ref. 2º Inglés", "Ref. 1º Plástica", "2º C. Medio"]]},
+  {nombre:"José", horario:[["3º Mates", "3º Lengua", "Ref. 4º C. Medio", "", "3º Ed. Física", "Ref. 4º Inglés", "3º Lengua"], ["3º Mates", "3º Mates", "3º Lengua", "", "3º C. Medio", "4º Ed. Física", "4º Ed. Física"], ["3º Lengua", "3º Mates", "3º Lengua", "", "3º Ed. Física", "3º C. Medio", "3º C. Medio"], ["Ref. 1º Lengua", "3º Mates", "3º Ed. Física", "", "Ref. 2º Plástica", "4º Ed. Física", "4º Ed. Física"], ["3º Lengua", "3º Mates", "3º C. Medio", "", "3º Ed. Física", "4º Ed. Física", "4º Ed. Física"]]},
+  {nombre:"Paula", horario:[["4º Lengua", "4º Mates", "4º C. Medio", "", "4º Plástica", "5º Francés", "5º Francés"], ["4º Mates", "4º Lengua", "4º Lengua", "", "Coord. Coedu", "6º Francés", "6º Francés"], ["4º Lengua", "4º Mates", "Coord. Coedu", "", "Coord. Coedu", "4º C. Medio", "4º C. Medio"], ["4º Lengua", "4º Mates", "Coord. Coedu", "", "4º C. Medio", "Ref. 4º Ed. Física", "Ref. 4º Ed. Física"], ["4º Lengua", "4º Mates", "4º Mates", "", "Ref. 5º C. Medio", "Coord. Ciclo", "Coord. Ciclo"]]},
+  {nombre:"Paloma", horario:[["5º Mates", "5º Lengua", "5º Lengua", "", "6º Música", "1º Música", "1º Música"], ["5º Mates", "5º Lengua", "2º Música", "", "5º C. Medio", "3º Plástica", "3º Plástica"], ["5º Lengua", "Ref. 3º Mates", "5º Mates", "", "4º Música", "5º Plástica", "5º Plástica"], ["5º C. Medio", "5º Música", "5º Mates", "", "6º Plástica", "3º Música", "3º Música"], ["Ref. 6º Lengua", "5º Mates", "5º Lengua", "", "5º C. Medio", "Ref. 3º Inglés", "Ref. 2º C. Medio"]]},
+  {nombre:"Lorena", horario:[["6º Mates", "6º Lengua", "6º Atedu", "", "Ref. 6º Música", "6º Inglés", "6º Inglés"], ["6º Mates", "6º Lengua", "6º C. Medio", "", "6º Ed. Valores", "Biblioteca", "Biblioteca"], ["6º Lengua", "6º Mates", "6º C. Medio", "", "6º Ed. Valores", "Ref. 3º C. Medio", "Ref. 3º C. Medio"], ["Biblioteca", "6º Mates", "6º Inglés", "", "Ref. 3º Inglés", "Ref. 5º Inglés", "Ref. 5º Inglés"], ["6º Lengua", "Ref. 5º Mates", "6º Atedu", "", "6º Inglés", "6º C. Medio", "6º C. Medio"]]},
+  {nombre:"Guada", horario:[["4º Lengua", "6º Lengua", "5º Lengua", "", "4º Plástica", "2º Mates", "2º Mates"], ["5º Mates", "6º Lengua", "3º Lengua", "", "2º Lengua", "1º C. Medio", "1º C. Medio"], ["3º Lengua", "6º Mates", "5º Mates", "", "6º Ed. Valores", "2º C. Medio", "2º C. Medio"], ["4º Lengua", "6º Mates", "4º Atedu", "", "4º C. Medio", "2º C. Medio", "2º C. Medio"], ["1º Lengua", "3º Mates", "5º Lengua", "", "4º Atedu", "6º C. Medio", "6º C. Medio"]]},
+  {nombre:"Carmen", horario:[["Inf. 3 años", "Ref. 3º Lengua", "3º Inglés", "", "2º Inglés", "4º Inglés", "4º Inglés"], ["1º Inglés", "Inf. 4 años", "5º Inglés", "", "4º Inglés", "2º Inglés", "2º Inglés"], ["Inf. 4 años", "Ref. 2º Mates", "4º Inglés", "", "5º Inglés", "Inf. 5 años", "Inf. 5 años"], ["Inf. 3 años", "Ref. 1º Mates", "1º Inglés", "", "3º Inglés", "5º Inglés", "5º Inglés"], ["Inf. 5 años", "Ref. 2º Mates", "1º Inglés", "", "2º Inglés", "3º Inglés", "3º Inglés"]]},
+  {nombre:"Mª José Torres", horario:VACIO()},   // pendiente
+  {nombre:"Inma", horario:VACIO()},   // pendiente
+  {nombre:"Belén", horario:VACIO()},   // pendiente
+];
+
+// Cuadrante de patios (recreo). Quien no aparezca aquí verá "-" (libre) en el recreo.
+// Un objeto por día (L a V): "tipo de patio": [maestros]. Los nombres deben coincidir con los de MAESTROS.
+const PATIO = [
+  {"Patio 1º-3º":["Susi","José"], "Patio 4º-6º":["Paula","Inma"]},                                               // Lunes
+  {"Patio 1º-3º":["Mª José Soto","Eli"], "Patio Infantil":["Loli"], "Patio 4º-6º":["Paloma","Lorena"]},          // Martes
+  {"Patio 1º-3º":["Susi","José"], "Patio 4º-6º":["Guada","Carmen"]},                                             // Miércoles
+  {"Patio 1º-3º":["Mª José Soto","Eli"], "Patio Infantil":["Loli"], "Patio 4º-6º":["Paloma","Lorena"]},          // Jueves
+  {"Patio 1º-3º":["Guada","Carmen"], "Patio 4º-6º":["Paula","Inma"]},                                            // Viernes
+];
+</script>
+<!-- ======================================================= -->
+
+<header>
+  <h1>¿Dónde está cada maestro?</h1>
+  <nav role="tablist">
+    <button role="tab" id="tab1" aria-selected="true" aria-controls="t1">Por maestro</button>
+    <button role="tab" id="tab2" aria-selected="false" aria-controls="t2">Por tramo horario</button>
+  </nav>
+</header>
+<main>
+  <section id="t1" role="tabpanel">
+    <div class="names" id="names"></div>
+    <div id="horarioMaestro"><p class="hint">Pulsa un nombre para ver su horario completo.</p></div>
+  </section>
+  <section id="t2" role="tabpanel" hidden>
+    <p class="hint">Pulsa un tramo para ver dónde está cada maestro. El marco amarillo es el tramo actual.</p>
+    <div class="wrap" id="rejilla"></div>
+    <div id="detalle"></div>
+  </section>
+</main>
+
+<script>
+// Orden alfabético automático (da igual el orden en que estén en los datos)
+MAESTROS.forEach(m => m.vacio = m.horario.flat().every(x => !x));
+MAESTROS.sort((a, b) => a.nombre.localeCompare(b.nombre, "es", {sensitivity:"base"}));
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const patio = (m, d) => Object.keys(PATIO[d]).find(k => PATIO[d][k].includes(m.nombre));
+const donde = (m, d, t) => TRAMOS[t].recreo ? (patio(m, d) || "-") : m.vacio ? "Sin datos" : (m.horario[d][t] || "Libre");
+const apagado = v => v === "-" || v === "Libre" || v === "Sin datos";
+
+// ---- Pestañas ----
+function mostrarTab(n){
+  [1,2].forEach(i => {
+    $("t"+i).hidden = i !== n;
+    $("tab"+i).setAttribute("aria-selected", i === n);
+  });
+}
+$("tab1").onclick = () => mostrarTab(1);
+$("tab2").onclick = () => mostrarTab(2);
+
+// ---- Pestaña 1 ----
+function pintarNombres(sel){
+  $("names").innerHTML = MAESTROS.map((m,i) =>
+    `<button data-i="${i}" aria-pressed="${i===sel}">${esc(m.nombre)}</button>`).join("");
+  $("names").querySelectorAll("button").forEach(b => b.onclick = () => verMaestro(+b.dataset.i));
+}
+function verMaestro(i){
+  const m = MAESTROS[i];
+  pintarNombres(i);
+  let h = `<h2>${esc(m.nombre)}</h2>${m.vacio?'<p class="hint">Todavía no tenemos cargado su horario de clases.</p>':""}<div class="wrap"><table><tr><th></th>${DIAS.map(d=>`<th>${d}</th>`).join("")}</tr>`;
+  TRAMOS.forEach((t,ti) => {
+    h += `<tr><th class="h ${t.recreo?"recreo":""}">${t.hora}</th>`;
+    DIAS.forEach((_,di) => {
+      const v = donde(m,di,ti);
+      h += `<td class="${t.recreo?"recreo":apagado(v)?"libre":""}">${esc(v)}</td>`;
+    });
+    h += "</tr>";
+  });
+  $("horarioMaestro").innerHTML = h + "</table></div>";
+}
+
+// ---- Pestaña 2 ----
+function tramoActual(){
+  const n = new Date(), d = n.getDay()-1, min = n.getHours()*60 + n.getMinutes();
+  if (d < 0 || d > 4) return null;
+  for (let t=0; t<TRAMOS.length; t++){
+    const [a,b] = TRAMOS[t].hora.split("–").map(x => { const [h,m] = x.trim().split(":"); return +h*60 + +m; });
+    if (min >= a && min < b) return [d,t];
+  }
+  return null;
+}
+function pintarRejilla(sel){
+  const ahora = tramoActual();
+  let h = `<table><tr><th></th>${DIAS.map(d=>`<th>${d}</th>`).join("")}</tr>`;
+  TRAMOS.forEach((t,ti) => {
+    h += `<tr><th class="h ${t.recreo?"recreo":""}">${t.hora}</th>`;
+    DIAS.forEach((_,di) => {
+      const cls = [t.recreo?"recreo":"", sel&&sel[0]===di&&sel[1]===ti?"sel":"", ahora&&ahora[0]===di&&ahora[1]===ti?"ahora":""].join(" ");
+      h += `<td class="${cls}"><button class="slot" data-d="${di}" data-t="${ti}" aria-label="${DIAS[di]} ${t.hora}">Ver</button></td>`;
+    });
+    h += "</tr>";
+  });
+  $("rejilla").innerHTML = h + "</table>";
+  $("rejilla").querySelectorAll(".slot").forEach(b => b.onclick = () => verTramo(+b.dataset.d, +b.dataset.t));
+}
+function verTramo(d,t){
+  pintarRejilla([d,t]);
+  const tr = TRAMOS[t];
+  let h = `<div class="panel"><h2>${DIAS[d]} · ${tr.hora}${tr.recreo?" (recreo)":""}</h2>`;
+  const lista = MAESTROS.map(m => [m, donde(m,d,t)]);
+  if (tr.recreo) lista.sort((a,b) => (a[1]==="-") - (b[1]==="-"));
+  lista.forEach(([m,v]) => {
+    h += `<div class="row ${apagado(v)?"libre":""}"><span>${esc(m.nombre)}</span><span>${esc(v)}</span></div>`;
+  });
+  $("detalle").innerHTML = h + "</div>";
+  $("detalle").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+pintarNombres(-1);
+pintarRejilla(null);
+</script>
+</body>
+</html>
