@@ -3,15 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CEIP Rafael Vidal (Fonelas)</title>
+<title>CEIP RAFAEL VIDAL 26/27</title>
 <style>
 :root{--bg:#f5f7fa;--card:#fff;--ink:#1b2733;--muted:#6b7a89;--line:#d9e0e7;--accent:#1f5f8b;--accent-soft:#e3eef6;--free:#eef1f4;--recreo:#fdf0d5;--aus:#a32d2d;--aus-bg:#fbe4e4;--verde:#e0f0dc}
 @media (prefers-color-scheme:dark){:root{--bg:#141a21;--card:#1d252e;--ink:#e6ecf1;--muted:#93a3b3;--line:#303b47;--accent:#6db3e0;--accent-soft:#23384a;--free:#232c36;--recreo:#3b3220;--aus:#f2a0a0;--aus-bg:#472626;--verde:#27402b}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 header{padding:20px 16px 0;max-width:960px;margin:0 auto}
-h1{font-size:1.4rem;margin:0}
-.sub{margin:2px 0 12px;color:var(--muted);font-size:.9rem}
+h1{font-size:1.4rem;margin:0 0 12px}
 nav{display:flex;gap:4px;border-bottom:2px solid var(--line);overflow-x:auto}
 nav button{white-space:nowrap;font:inherit;background:none;border:0;padding:10px 16px;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px}
 nav button[aria-selected=true]{color:var(--accent);border-color:var(--accent);font-weight:600}
@@ -54,6 +53,7 @@ th.hoy{box-shadow:inset 0 -3px 0 #e0a100}
 .c0{background:var(--accent-soft)}
 .c1{background:var(--verde)}
 #t3 td small{display:block;color:var(--muted);font-size:.78rem;margin-top:2px}
+#t3 td small.ref{color:var(--aus);font-weight:600}
 .hint{color:var(--muted)}
 .nota{font-size:.85rem;color:var(--muted);margin-top:8px}
 </style>
@@ -73,6 +73,9 @@ const TRAMOS = [
   {hora:"13:00 – 13:30"},
   {hora:"13:30 – 14:00"},
 ];
+
+// Tramos que se funden en una sola casilla cuando son iguales (posiciones en TRAMOS: 5 = 13:00-13:30, 6 = 13:30-14:00).
+const UNIR_TRAMOS = [5, 6];
 
 // Horario vacío: 5 días x 7 tramos (todo "Libre" hasta que se rellene).
 const VACIO = () => Array.from({length:5}, () => Array(7).fill(""));
@@ -131,12 +134,15 @@ const ORDEN_PATIOS = ["Patio 1º-3º","Patio 4º-6º","Patio Infantil"];
 
 // Maestros que salen en la pestaña de Educación Física (se toman sus casillas que contienen "Ed. Física" o "Psicomotricidad").
 const EF_PROFES = ["José","Eli"];
+
+// Maestros de apoyo: salvo cuando dan Atedu, entran a reforzar (salen en rojo en la pestaña "Por curso").
+// Si en un tramo no hay otro maestro con ese curso, se muestran como maestro de la clase.
+const APOYO = ["Guada"];
 </script>
 <!-- ======================================================= -->
 
 <header>
-  <h1>CEIP Rafael Vidal (Fonelas)</h1>
-  <p class="sub">Dónde está cada maestro · Curso 2026-2027</p>
+  <h1>CEIP RAFAEL VIDAL 26/27</h1>
   <nav role="tablist">
     <button role="tab" id="tab1" aria-selected="true" aria-controls="t1">Por maestro</button>
     <button role="tab" id="tab2" aria-selected="false" aria-controls="t2">Por tramo horario</button>
@@ -188,6 +194,15 @@ $("tab3").onclick = () => mostrarTab(3);
 $("tab4").onclick = () => mostrarTab(4);
 $("tab5").onclick = () => mostrarTab(5);
 
+// ---- Unir casillas iguales (13:00-13:30 y 13:30-14:00) ----
+// Devuelve el rowspan de la casilla: 2 si se une con la de abajo, 0 si ya está unida con la de arriba, 1 si va sola.
+function unir(ti, di, val){
+  const [a, b] = UNIR_TRAMOS;
+  if ((ti !== a && ti !== b) || val(di, a) !== val(di, b)) return 1;
+  return ti === a ? 2 : 0;
+}
+const rowspan = n => n > 1 ? ` rowspan="${n}"` : "";
+
 // ---- Resúmenes de horas ----
 const minutos = ti => {
   const [a, b] = TRAMOS[ti].hora.split("–").map(x => { const [h, m] = x.trim().split(":"); return +h * 60 + +m; });
@@ -236,8 +251,10 @@ function verMaestro(i){
   TRAMOS.forEach((t,ti) => {
     h += `<tr><th class="h ${t.recreo?"recreo":""}">${t.hora}</th>`;
     DIAS.forEach((_,di) => {
+      const rs = unir(ti, di, (d,x) => donde(m,d,x));
+      if (!rs) return;
       const v = donde(m,di,ti);
-      h += `<td class="${(t.recreo?"recreo ":"")+clase(v)}">${esc(v)}</td>`;
+      h += `<td${rowspan(rs)} class="${(t.recreo?"recreo ":"")+clase(v)}">${esc(v)}</td>`;
     });
     h += "</tr>";
   });
@@ -295,9 +312,24 @@ function verTramo(d,t){
 
 
 // ---- Pestaña 3 ----
+// Maestros con ese curso en ese tramo: los que dan la clase y, aparte, los que entran de refuerzo
+// (casillas "Ref. ..." y casillas de los maestros de APOYO que no son Atedu).
 function profesDe(curso, d, t){
-  return MAESTROS.filter(m => !(m.noEsta && m.noEsta.includes(d)) && (m.horario[d][t] || "").includes(curso))
-    .map(m => m.nombre + (/^ref/i.test(m.horario[d][t]) ? " (ref.)" : "")).join(", ");
+  const celda = m => m.horario[d][t] || "";
+  const con = MAESTROS.filter(m => !(m.noEsta && m.noEsta.includes(d)) && celda(m).includes(curso));
+  const explicito = m => /^ref/i.test(celda(m));
+  const apoyo = m => APOYO.includes(m.nombre) && !/atedu/i.test(celda(m));
+  let ref = con.filter(m => explicito(m) || apoyo(m));
+  let clase = con.filter(m => !ref.includes(m));
+  if (!clase.length){                      // nadie más con ese curso: quien apoya da la clase
+    clase = ref.filter(m => !explicito(m));
+    ref = ref.filter(explicito);
+  }
+  return {clase: clase.map(m => m.nombre), refuerzo: ref.map(m => m.nombre)};
+}
+function profesHTML(p){
+  return (p.clase.length ? `<small>${esc(p.clase.join(", "))}</small>` : "") +
+         (p.refuerzo.length ? `<small class="ref">Refuerzo: ${esc(p.refuerzo.join(", "))}</small>` : "");
 }
 function pintarCursos(sel){
   $("cursos").innerHTML = Object.keys(CURSOS).map(c =>
@@ -311,8 +343,9 @@ function verCurso(c){
     h += `<tr><th class="h ${t.recreo?"recreo":""}">${t.hora}</th>`;
     DIAS.forEach((_,di) => {
       if (t.recreo){ h += `<td class="recreo">Recreo</td>`; return; }
-      const p = profesDe(c,di,ti);
-      h += `<td>${esc(CURSOS[c][di][ti])}${p?`<small>${esc(p)}</small>`:""}</td>`;
+      const rs = unir(ti, di, (d,x) => CURSOS[c][d][x] + "|" + JSON.stringify(profesDe(c,d,x)));
+      if (!rs) return;
+      h += `<td${rowspan(rs)}>${esc(CURSOS[c][di][ti])}${profesHTML(profesDe(c,di,ti))}</td>`;
     });
     h += "</tr>";
   });
@@ -342,11 +375,13 @@ function pintarEF(){
     h += `<tr><th class="h ${t.recreo?"recreo":""}">${t.hora}</th>`;
     DIAS.forEach((_,di) => {
       if (t.recreo){ h += `<td class="recreo">Recreo</td>`; return; }
-      const chips = profes.map((m,i) => {
-        const v = m.horario[di][ti] || "";
+      const chipsDe = (d,x) => profes.map((m,i) => {
+        const v = m.horario[d][x] || "";
         return /Ed\. Física|Psicomotricidad/.test(v) ? `<span class="chip c${i}">${esc(v.replace(" Ed. Física",""))} · ${esc(m.nombre)}</span>` : "";
       }).join("");
-      h += `<td>${chips}</td>`;
+      const rs = unir(ti, di, chipsDe);
+      if (!rs) return;
+      h += `<td${rowspan(rs)}>${chipsDe(di,ti)}</td>`;
     });
     h += "</tr>";
   });
