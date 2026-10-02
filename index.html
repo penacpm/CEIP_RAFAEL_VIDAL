@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f5f8b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CEIP Vidal">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>CEIP RAFAEL VIDAL 26/27</title>
 <style>
 :root{--bg:#f5f7fa;--card:#fff;--ink:#1b2733;--muted:#6b7a89;--line:#d9e0e7;--accent:#1f5f8b;--accent-soft:#e3eef6;--free:#eef1f4;--recreo:#fdf0d5;--aus:#a32d2d;--aus-bg:#fbe4e4;--verde:#e0f0dc}
@@ -93,7 +100,7 @@ const VACIO = () => Array.from({length:5}, () => Array(7).fill(""));
 const MAESTROS = [
   {nombre:"Antonio Dorador", horario:[["AP. Familias", "Act. PC", "Func. Direcc", "", "Coord. Convivencia", "Act. PC", "Act. PC"], ["Func. Direcc", "Coord. TDE", "Func. Direcc", "", "Func. Direcc", "Func. Direcc", "Func. Direcc"], ["Func. Direcc", "Func. Direcc", "Func. Direcc", "", "", "Func. Direcc", "Func. Direcc"], ["Robótica 6º", "Coord. TDE", "Coord. Convivencia", "", "Func. Direcc", "Func. Direcc", "Func. Direcc"], ["Robótica 5º / Act. PC", "Coord. Convivencia", "", "", "Func. Direcc", "AP. Familias", "AP. Familias"]]},
   {nombre:"Eli", horario:[["Func. Direcc", "Func. Direcc", "2º Ed. Física", "", "1º Ed. Física", "Inf. 5 años Psicomotricidad", "Inf. 5 años Psicomotricidad"], ["Biblioteca", "Coord. Ciclo", "Func. Direcc", "", "1º Ed. Física", "5º Ed. Física", "5º Ed. Física"], ["Biblioteca", "5º Ed. Física", "Func. Direcc", "", "2º Ed. Física", "6º Ed. Física", "6º Ed. Física"], ["Biblioteca", "Func. Direcc", "2º Ed. Física", "", "1º Ed. Física", "6º Ed. Física", "6º Ed. Física"], ["Func. Direcc", "6º Ed. Física", "2º Ed. Física", "", "1º Ed. Física", "5º Ed. Física", "5º Ed. Física"]]},
-  {nombre:"Maribel", horario:VACIO()},   // pendiente
+  {nombre:"Maribel", horario:[["Coord. Ciclo", "Inf. 3 años C.R.R", "Inf. 3 años C.A", "", "Inf. 3 años C.R.R", "Inf. 3 años D.E.E", "Inf. 3 años Atedu"], [">> 55 años", "Inf. 3 años C.R.R", "Inf. 3 años C.A", "", "Inf. 3 años D.E.E", "Inf. 3 años C.A", "Inf. 3 años C.A"], ["Inf. 3 años C.A", "Inf. 3 años C.R.R", "Inf. 3 años D.E.E", "", "Inf. 3 años C.R.R", "Inf. 3 años D.E.E", "Inf. 3 años D.E.E"], [">> 55 años", "Inf. 3 años C.R.R", "Inf. 3 años C.A", "", "Inf. 3 años C.R.R", "Inf. 3 años D.E.E", "Inf. 3 años D.E.E"], ["Inf. 3 años C.A", "Inf. 3 años Atedu", "Inf. 3 años C.A", "", "Inf. 3 años D.E.E", "Inf. 3 años D.E.E", "Inf. 3 años D.E.E"]]},
   {nombre:"Celia", horario:[["", "", "", "", "Func. Direcc", "", ""], ["", "", "", "", "Func. Direcc", "", ""], ["", "", "", "", "", "", ""], ["", "", "Func. Direcc", "", "Func. Direcc", "", ""], ["", "", "", "", "Func. Direcc", "", ""]]},
   {nombre:"Loli", horario:VACIO()},   // pendiente
   {nombre:"Mª José Soto", horario:[["1º Lengua", "1º Atedu", "1º Mates", "", "Inf. 4 años", ">> 55 años", ">> 55 años"], ["Inf. 3 años", "1º Lengua", "1º Mates", "", "Inf. 4 años", "1º C. Medio", "1º C. Medio"], ["1º Lengua", "1º C. Medio", "1º Mates", "", "1º Mates", "1º Lengua", "1º Lengua"], ["1º Lengua", "1º Mates", "Inf. 4 años", "", "Inf. 4 años", "1º Atedu", "1º C. Medio"], ["1º Lengua", "1º Mates", ">> 55 años", "", "Inf. 4 años", "1º Plástica", "1º Plástica"]]},
@@ -128,8 +135,9 @@ const CURSOS = {
   "4º": [["Lengua", "Matemáticas", "C. del Medio", "", "Plástica", "Inglés", "Inglés"], ["Matemáticas", "Lengua", "Lengua", "", "Inglés", "Ed. Física", "Ed. Física"], ["Lengua", "Matemáticas", "Inglés", "", "Música", "C. del Medio", "C. del Medio"], ["Lengua", "Matemáticas", "Religión / Atedu", "", "C. del Medio", "Ed. Física", "Ed. Física"], ["Lengua", "Matemáticas", "Matemáticas", "", "Religión / Atedu", "Ed. Física", "Ed. Física"]],
   "5º": [["Matemáticas", "Lengua", "Lengua", "", "Religión / Atedu", "Francés", "Francés"], ["Matemáticas", "Lengua", "Inglés", "", "C. del Medio", "Ed. Física", "Ed. Física"], ["Lengua", "Ed. Física", "Matemáticas", "", "Inglés", "Plástica", "Plástica"], ["C. del Medio", "Música", "Matemáticas", "", "Religión / Atedu", "Inglés", "Inglés"], ["Robótica", "Matemáticas", "Lengua", "", "C. del Medio", "Ed. Física", "Ed. Física"]],
   "6º": [["Matemáticas", "Lengua", "Religión / Atedu", "", "Música", "Inglés", "Inglés"], ["Matemáticas", "Lengua", "C. del Medio", "", "Ed. Valores", "Francés", "Francés"], ["Lengua", "Matemáticas", "C. del Medio", "", "Ed. Valores", "Ed. Física", "Ed. Física"], ["Robótica", "Matemáticas", "Inglés", "", "Plástica", "Ed. Física", "Ed. Física"], ["Lengua", "Ed. Física", "Religión / Atedu", "", "Inglés", "C. del Medio", "C. del Medio"]],
-  // Infantil: solo constan los tramos que salen en los horarios de los maestros (Inglés de Carmen, Psicomotricidad de Eli, Inf. de Mª José Soto).
-  "Inf. 3 años": [["Inglés", "", "", "", "", "", ""], ["Sin especificar", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["Inglés", "", "", "", "", "", ""], ["", "", "", "", "", "", ""]],
+  // Infantil. 3 años: completo. 4 y 5 años: solo constan los tramos que salen en los horarios de los maestros
+  // (Inglés de Carmen, Psicomotricidad de Eli, Inf. de Mª José Soto). C.A, C.R.R y D.E.E son las áreas de Infantil, tal como las escribís.
+  "Inf. 3 años": [["Inglés", "C.R.R", "C.A", "", "C.R.R", "D.E.E", "Religión / Atedu"], ["C.A", "C.R.R", "C.A", "", "D.E.E", "C.A", "C.A"], ["C.A", "C.R.R", "D.E.E", "", "C.R.R", "D.E.E", "D.E.E"], ["Inglés", "C.R.R", "C.A", "", "C.R.R", "D.E.E", "D.E.E"], ["C.A", "Religión / Atedu", "C.A", "", "D.E.E", "D.E.E", "D.E.E"]],
   "Inf. 4 años": [["", "", "", "", "Sin especificar", "", ""], ["", "Inglés", "", "", "Sin especificar", "", ""], ["Inglés", "", "", "", "", "", ""], ["", "", "Sin especificar", "", "Sin especificar", "", ""], ["", "", "", "", "Sin especificar", "", ""]],
   "Inf. 5 años": [["", "", "", "", "", "Psicomotricidad", "Psicomotricidad"], ["", "", "", "", "", "", ""], ["", "", "", "", "", "Inglés", "Inglés"], ["", "", "", "", "", "", ""], ["Inglés", "", "", "", "", "", ""]],
 };
@@ -361,6 +369,7 @@ function profesHTML(p){
   return (p.clase.length ? `<small>${esc(p.clase.join(p.sep))}</small>` : "") +
          (p.refuerzo.length ? `<small class="ref">Refuerzo: ${esc(p.refuerzo.join(", "))}</small>` : "");
 }
+const incompleto = c => DIAS.some((_, d) => TRAMOS.some((t, ti) => !t.recreo && !CURSOS[c][d][ti]));
 const nombreCurso = c => c.startsWith("Inf.") ? c.replace("Inf.", "Infantil") : c + " de Primaria";
 function pintarCursos(sel){
   $("cursos").innerHTML = Object.keys(CURSOS).map(c =>
@@ -369,7 +378,7 @@ function pintarCursos(sel){
 }
 function verCurso(c){
   pintarCursos(c);
-  let h = `<h2>${nombreCurso(c)}</h2>${c.startsWith("Inf.") ? '<p class="hint">Horario incompleto: solo constan los tramos que salen en los horarios de los maestros.</p>' : ""}<div class="wrap"><table><tr><th></th>${DIAS.map(d=>`<th>${d}</th>`).join("")}</tr>`;
+  let h = `<h2>${nombreCurso(c)}</h2>${incompleto(c) ? '<p class="hint">Horario incompleto: solo constan los tramos que salen en los horarios de los maestros.</p>' : ""}<div class="wrap"><table><tr><th></th>${DIAS.map(d=>`<th>${d}</th>`).join("")}</tr>`;
   TRAMOS.forEach((t,ti) => {
     h += `<tr><th class="h ${t.recreo?"recreo":""}">${t.hora}</th>`;
     DIAS.forEach((_,di) => {
@@ -499,6 +508,9 @@ pintarEF();
 pintarLibreRejilla(null);
 pintarAhora();
 setInterval(() => { if (!$("t0").hidden) pintarAhora(); }, 60000);   // la pestaña "Ahora" se actualiza sola
+
+// App instalable y disponible sin conexión (solo funciona al abrirla desde la web, no como archivo suelto)
+if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 </script>
 </body>
 </html>
