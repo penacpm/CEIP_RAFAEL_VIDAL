@@ -37,6 +37,7 @@ td.ahora{box-shadow:inset 0 0 0 3px #e0a100}
 .row.libre span:last-child{color:var(--muted)}
 .row.ausente span:last-child{color:var(--aus);font-weight:600}
 td.ausente{background:var(--aus-bg);color:var(--aus);font-weight:600}
+td.apoyo,.ap{color:var(--aus);font-weight:600}
 #t3 td,#t5 td{vertical-align:top}
 .resumen{margin-top:20px}
 .resumen h3{font-size:1rem;margin:0 0 8px}
@@ -179,6 +180,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":
 const patio = (m, d) => Object.keys(PATIO[d]).find(k => PATIO[d][k].includes(m.nombre));
 const donde = (m, d, t) => m.noEsta && m.noEsta.includes(d) ? "NO ESTÁ" : TRAMOS[t].recreo ? (patio(m, d) || "-") : m.vacio ? "Sin datos" : (m.horario[d][t] || "Libre");
 const apagado = v => v === "-" || v === "Libre" || v === "Sin datos";
+const esApoyo = (m, v) => !!v && (/^ref/i.test(v) || (APOYO.includes(m.nombre) && !/atedu/i.test(v)));
 const clase = v => v === "NO ESTÁ" ? "ausente" : apagado(v) ? "libre" : "";
 
 // ---- Pestañas ----
@@ -211,7 +213,7 @@ const minutos = ti => {
 const fmt = min => { const h = Math.floor(min / 60), m = Math.round(min % 60); return (h ? h + " h" : "") + (h && m ? " " : "") + (m ? m + " min" : ""); };
 function tablaResumen(titulo, acc, rango){
   const filas = Object.entries(acc).sort((a, b) => rango(a[0]) - rango(b[0]) || b[1] - a[1] || a[0].localeCompare(b[0], "es"));
-  const cl = k => k === "No está" ? "ausente" : k === "Libre" ? "libre" : "";
+  const cl = k => k === "No está" ? "ausente" : k === "Libre" ? "libre" : k === "Apoyo" ? "apoyo" : "";
   return `<div class="resumen"><h3>${titulo}</h3><table>` +
     filas.map(([k, v]) => `<tr><td class="${cl(k)}">${esc(k)}</td><td class="${cl(k)}">${fmt(v)}</td></tr>`).join("") + "</table></div>";
 }
@@ -222,6 +224,7 @@ function resumenMaestro(m){
     const dur = minutos(ti), v = donde(m, d, ti);
     if (t.recreo) { if (v.startsWith("Patio")) suma(v + " (recreo)", dur); return; }
     if (v === "NO ESTÁ") return suma("No está", dur);
+    if (esApoyo(m, m.horario[d][ti])) return suma("Apoyo", dur);   // todo el apoyo junto, sin separar por curso
     const partes = v.split(" / ");               // casilla con dos cosas: el tiempo se reparte a partes iguales
     partes.forEach(p => suma(p, dur / partes.length));
   }));
@@ -254,11 +257,13 @@ function verMaestro(i){
       const rs = unir(ti, di, (d,x) => donde(m,d,x));
       if (!rs) return;
       const v = donde(m,di,ti);
-      h += `<td${rowspan(rs)} class="${(t.recreo?"recreo ":"")+clase(v)}">${esc(v)}</td>`;
+      const ap = !t.recreo && esApoyo(m, m.horario[di][ti]) ? " apoyo" : "";
+      h += `<td${rowspan(rs)} class="${(t.recreo?"recreo ":"")+clase(v)+ap}">${esc(v)}</td>`;
     });
     h += "</tr>";
   });
-  $("horarioMaestro").innerHTML = h + "</table></div>" + resumenMaestro(m);
+  const hayApoyo = DIAS.some((_,d) => TRAMOS.some((t,ti) => !t.recreo && esApoyo(m, m.horario[d][ti])));
+  $("horarioMaestro").innerHTML = h + "</table></div>" + (hayApoyo ? '<p class="nota"><span class="ap">En rojo</span>: apoyo (entra a reforzar).</p>' : "") + resumenMaestro(m);
 }
 
 // ---- Pestaña 2 ----
