@@ -96,7 +96,7 @@ const MAESTROS = [
   {nombre:"Celia", horario:[["", "", "", "", "Func. Direcc", "", ""], ["", "", "", "", "Func. Direcc", "", ""], ["", "", "", "", "", "", ""], ["", "", "Func. Direcc", "", "Func. Direcc", "", ""], ["", "", "", "", "Func. Direcc", "", ""]]},
   {nombre:"Loli", horario:VACIO()},   // pendiente
   {nombre:"Mª José Soto", horario:[["1º Lengua", "1º Atedu", "1º Mates", "", "Inf. 4 años", ">> 55 años", ">> 55 años"], ["Inf. 3 años", "1º Lengua", "1º Mates", "", "Inf. 4 años", "1º C. Medio", "1º C. Medio"], ["1º Lengua", "1º C. Medio", "1º Mates", "", "1º Mates", "1º Lengua", "1º Lengua"], ["1º Lengua", "1º Mates", "Inf. 4 años", "", "Inf. 4 años", "1º Atedu", "1º C. Medio"], ["1º Lengua", "1º Mates", ">> 55 años", "", "Inf. 4 años", "1º Plástica", "1º Plástica"]]},
-  {nombre:"Susi", horario:[["Coord. Ciclo", "2º Lengua", "Ref. 1º Mates", "", "Ref. 2º Inglés", "1º Mates", "1º Mates"], ["2º Lengua", "2º Mates", "Ref. 1º Mates", "", "2º Lengua", "Ref. 2º Inglés", "Ref. 2º Inglés"], ["2º Lengua", "2º Mates", "2º Mates", "", "Ref. 1º Mates", "2º C. Medio", "2º C. Medio"], ["2º Lengua", "2º Mates", "Ref. 5º Mates", "", "2º Plástica", "2º C. Medio", "2º C. Medio"], ["2º Lengua", "2º Mates", "Ref. 4º Mates", "", "Ref. 2º Inglés", "Ref. 1º Plástica", "2º C. Medio"]]},
+  {nombre:"Susi", horario:[["Coord. Ciclo", "2º Lengua", "Ref. 1º Mates", "", "Ref. 2º Inglés", "2º Mates", "2º Mates"], ["2º Lengua", "2º Mates", "Ref. 1º Mates", "", "2º Lengua", "Ref. 2º Inglés", "Ref. 2º Inglés"], ["2º Lengua", "2º Mates", "2º Mates", "", "Ref. 1º Mates", "2º C. Medio", "2º C. Medio"], ["2º Lengua", "2º Mates", "Ref. 5º Mates", "", "2º Plástica", "2º C. Medio", "2º C. Medio"], ["2º Lengua", "2º Mates", "Ref. 4º Mates", "", "Ref. 2º Inglés", "Ref. 1º Plástica", "2º C. Medio"]]},
   {nombre:"José", horario:[["3º Mates", "3º Lengua", "Ref. 4º C. Medio", "", "3º Ed. Física", "Ref. 4º Inglés", "3º Lengua"], ["3º Mates", "3º Mates", "3º Lengua", "", "3º C. Medio", "4º Ed. Física", "4º Ed. Física"], ["3º Lengua", "3º Mates", "3º Lengua", "", "3º Ed. Física", "3º C. Medio", "3º C. Medio"], ["Ref. 1º Lengua", "3º Mates", "3º Ed. Física", "", "Ref. 2º Plástica", "4º Ed. Física", "4º Ed. Física"], ["3º Lengua", "3º Mates", "3º C. Medio", "", "3º Ed. Física", "4º Ed. Física", "4º Ed. Física"]]},
   {nombre:"Paula", horario:[["4º Lengua", "4º Mates", "4º C. Medio", "", "4º Plástica", "5º Francés", "5º Francés"], ["4º Mates", "4º Lengua", "4º Lengua", "", "Coord. Coedu", "6º Francés", "6º Francés"], ["4º Lengua", "4º Mates", "Coord. Coedu", "", "Coord. Coedu", "4º C. Medio", "4º C. Medio"], ["4º Lengua", "4º Mates", "Coord. Coedu", "", "4º C. Medio", "Ref. 4º Ed. Física", "Ref. 4º Ed. Física"], ["4º Lengua", "4º Mates", "4º Mates", "", "Ref. 5º C. Medio", "Coord. Ciclo", "Coord. Ciclo"]]},
   {nombre:"Paloma", horario:[["5º Mates", "5º Lengua", "5º Lengua", "", "6º Música", "1º Música", "1º Música"], ["5º Mates", "5º Lengua", "2º Música", "", "5º C. Medio", "3º Plástica", "3º Plástica"], ["5º Lengua", "Ref. 3º Mates", "5º Mates", "", "4º Música", "5º Plástica", "5º Plástica"], ["5º C. Medio", "5º Música", "5º Mates", "", "6º Plástica", "3º Música", "3º Música"], ["Ref. 6º Lengua", "5º Mates", "5º Lengua", "", "5º C. Medio", "Ref. 3º Inglés", "Ref. 2º C. Medio"]]},
@@ -325,10 +325,14 @@ function profesDe(curso, d, t){
     clase = ref.filter(m => !explicito(m));
     ref = ref.filter(explicito);
   }
-  return {clase: clase.map(m => m.nombre), refuerzo: ref.map(m => m.nombre)};
+  // Religión / Atedu: primero quien da Religión y después quien da Atedu, separados por " / " como en la asignatura.
+  const rango = m => /Religión/.test(celda(m)) ? 0 : /atedu/i.test(celda(m)) ? 1 : 2;
+  const mixto = clase.some(m => rango(m) === 0) && clase.some(m => rango(m) === 1);
+  if (mixto) clase = clase.slice().sort((a, b) => rango(a) - rango(b));
+  return {clase: clase.map(m => m.nombre), refuerzo: ref.map(m => m.nombre), sep: mixto ? " / " : ", "};
 }
 function profesHTML(p){
-  return (p.clase.length ? `<small>${esc(p.clase.join(", "))}</small>` : "") +
+  return (p.clase.length ? `<small>${esc(p.clase.join(p.sep))}</small>` : "") +
          (p.refuerzo.length ? `<small class="ref">Refuerzo: ${esc(p.refuerzo.join(", "))}</small>` : "");
 }
 function pintarCursos(sel){
