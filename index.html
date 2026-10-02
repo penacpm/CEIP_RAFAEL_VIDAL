@@ -26,7 +26,7 @@ th{background:var(--accent-soft)}
 th.h{white-space:nowrap;text-align:left;font-weight:600}
 td.libre{background:var(--free);color:var(--muted)}
 td.recreo,th.recreo{background:var(--recreo);color:var(--muted)}
-#t2 td.sel{background:var(--accent);color:#fff}
+#t2 td.sel,#t6 td.sel{background:var(--accent);color:#fff}
 .slot{width:100%;font:inherit;background:var(--card);color:var(--ink);border:0;cursor:pointer;padding:10px 4px}
 .slot:hover{background:var(--accent-soft)}
 td.sel .slot{background:var(--accent);color:#fff}
@@ -35,7 +35,7 @@ td.ahora{box-shadow:inset 0 0 0 3px #e0a100}
 .panel h2{margin:0 0 10px;font-size:1.1rem}
 .row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line)}
 .row.libre span:last-child{color:var(--muted)}
-.row.ausente span:last-child{color:var(--aus);font-weight:600}
+.row.ausente span:last-child,.row.apoyo span:last-child{color:var(--aus);font-weight:600}
 td.ausente{background:var(--aus-bg);color:var(--aus);font-weight:600}
 td.apoyo,.ap{color:var(--aus);font-weight:600}
 #t3 td,#t5 td{vertical-align:top}
@@ -128,6 +128,10 @@ const CURSOS = {
   "4º": [["Lengua", "Matemáticas", "C. del Medio", "", "Plástica", "Inglés", "Inglés"], ["Matemáticas", "Lengua", "Lengua", "", "Inglés", "Ed. Física", "Ed. Física"], ["Lengua", "Matemáticas", "Inglés", "", "Música", "C. del Medio", "C. del Medio"], ["Lengua", "Matemáticas", "Religión / Atedu", "", "C. del Medio", "Ed. Física", "Ed. Física"], ["Lengua", "Matemáticas", "Matemáticas", "", "Religión / Atedu", "Ed. Física", "Ed. Física"]],
   "5º": [["Matemáticas", "Lengua", "Lengua", "", "Religión / Atedu", "Francés", "Francés"], ["Matemáticas", "Lengua", "Inglés", "", "C. del Medio", "Ed. Física", "Ed. Física"], ["Lengua", "Ed. Física", "Matemáticas", "", "Inglés", "Plástica", "Plástica"], ["C. del Medio", "Música", "Matemáticas", "", "Religión / Atedu", "Inglés", "Inglés"], ["Robótica", "Matemáticas", "Lengua", "", "C. del Medio", "Ed. Física", "Ed. Física"]],
   "6º": [["Matemáticas", "Lengua", "Religión / Atedu", "", "Música", "Inglés", "Inglés"], ["Matemáticas", "Lengua", "C. del Medio", "", "Ed. Valores", "Francés", "Francés"], ["Lengua", "Matemáticas", "C. del Medio", "", "Ed. Valores", "Ed. Física", "Ed. Física"], ["Robótica", "Matemáticas", "Inglés", "", "Plástica", "Ed. Física", "Ed. Física"], ["Lengua", "Ed. Física", "Religión / Atedu", "", "Inglés", "C. del Medio", "C. del Medio"]],
+  // Infantil: solo constan los tramos que salen en los horarios de los maestros (Inglés de Carmen, Psicomotricidad de Eli, Inf. de Mª José Soto).
+  "Inf. 3 años": [["Inglés", "", "", "", "", "", ""], ["Sin especificar", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["Inglés", "", "", "", "", "", ""], ["", "", "", "", "", "", ""]],
+  "Inf. 4 años": [["", "", "", "", "Sin especificar", "", ""], ["", "Inglés", "", "", "Sin especificar", "", ""], ["Inglés", "", "", "", "", "", ""], ["", "", "Sin especificar", "", "Sin especificar", "", ""], ["", "", "", "", "Sin especificar", "", ""]],
+  "Inf. 5 años": [["", "", "", "", "", "Psicomotricidad", "Psicomotricidad"], ["", "", "", "", "", "", ""], ["", "", "", "", "", "Inglés", "Inglés"], ["", "", "", "", "", "", ""], ["Inglés", "", "", "", "", "", ""]],
 };
 
 // Orden en que se muestran los patios.
@@ -139,21 +143,27 @@ const EF_PROFES = ["José","Eli"];
 // Maestros de apoyo: salvo cuando dan Atedu, entran a reforzar (salen en rojo en la pestaña "Por curso").
 // Si en un tramo no hay otro maestro con ese curso, se muestran como maestro de la clase.
 const APOYO = ["Guada"];
+
+// Equipo directivo: cuentan como libres siempre que no estén dando clase a un curso (pestaña "Libre").
+const EQUIPO_DIRECTIVO = ["Antonio Dorador","Eli","Celia"];
 </script>
 <!-- ======================================================= -->
 
 <header>
   <h1>CEIP RAFAEL VIDAL 26/27</h1>
   <nav role="tablist">
-    <button role="tab" id="tab1" aria-selected="true" aria-controls="t1">Por maestro</button>
+    <button role="tab" id="tab0" aria-selected="true" aria-controls="t0">Ahora</button>
+    <button role="tab" id="tab1" aria-selected="false" aria-controls="t1">Por maestro</button>
     <button role="tab" id="tab2" aria-selected="false" aria-controls="t2">Por tramo horario</button>
     <button role="tab" id="tab3" aria-selected="false" aria-controls="t3">Por curso</button>
     <button role="tab" id="tab4" aria-selected="false" aria-controls="t4">Patios</button>
     <button role="tab" id="tab5" aria-selected="false" aria-controls="t5">Ed. Física</button>
+    <button role="tab" id="tab6" aria-selected="false" aria-controls="t6">Libre</button>
   </nav>
 </header>
 <main>
-  <section id="t1" role="tabpanel">
+  <section id="t0" role="tabpanel"><div id="ahora"></div></section>
+  <section id="t1" role="tabpanel" hidden>
     <div class="names" id="names"></div>
     <div id="horarioMaestro"><p class="hint">Pulsa un nombre para ver su horario completo.</p></div>
   </section>
@@ -168,6 +178,11 @@ const APOYO = ["Guada"];
   </section>
   <section id="t4" role="tabpanel" hidden><div id="tablaPatios"></div></section>
   <section id="t5" role="tabpanel" hidden><div id="tablaEF"></div></section>
+  <section id="t6" role="tabpanel" hidden>
+    <p class="hint">Pulsa un tramo para ver quién está libre: apoyo, equipo directivo (si no da clase), coordinaciones y otras tareas, y quien no tiene nada asignado. El marco amarillo es el tramo actual.</p>
+    <div class="wrap" id="rejillaLibre"></div>
+    <div id="detalleLibre"></div>
+  </section>
 </main>
 
 <script>
@@ -185,7 +200,7 @@ const clase = v => v === "NO ESTÁ" ? "ausente" : apagado(v) ? "libre" : "";
 
 // ---- Pestañas ----
 function mostrarTab(n){
-  [1,2,3,4,5].forEach(i => {
+  [0,1,2,3,4,5,6].forEach(i => {
     $("t"+i).hidden = i !== n;
     $("tab"+i).setAttribute("aria-selected", i === n);
   });
@@ -195,6 +210,8 @@ $("tab2").onclick = () => mostrarTab(2);
 $("tab3").onclick = () => mostrarTab(3);
 $("tab4").onclick = () => mostrarTab(4);
 $("tab5").onclick = () => mostrarTab(5);
+$("tab0").onclick = () => mostrarTab(0);
+$("tab6").onclick = () => mostrarTab(6);
 
 // ---- Unir casillas iguales (13:00-13:30 y 13:30-14:00) ----
 // Devuelve el rowspan de la casilla: 2 si se une con la de abajo, 0 si ya está unida con la de arriba, 1 si va sola.
@@ -213,7 +230,7 @@ const minutos = ti => {
 const fmt = min => { const h = Math.floor(min / 60), m = Math.round(min % 60); return (h ? h + " h" : "") + (h && m ? " " : "") + (m ? m + " min" : ""); };
 function tablaResumen(titulo, acc, rango){
   const filas = Object.entries(acc).sort((a, b) => rango(a[0]) - rango(b[0]) || b[1] - a[1] || a[0].localeCompare(b[0], "es"));
-  const cl = k => k === "No está" ? "ausente" : k === "Libre" ? "libre" : k === "Apoyo" ? "apoyo" : "";
+  const cl = k => k === "No está" ? "ausente" : k === "Libre" || k === "Sin datos" ? "libre" : k === "Apoyo" ? "apoyo" : "";
   return `<div class="resumen"><h3>${titulo}</h3><table>` +
     filas.map(([k, v]) => `<tr><td class="${cl(k)}">${esc(k)}</td><td class="${cl(k)}">${fmt(v)}</td></tr>`).join("") + "</table></div>";
 }
@@ -235,10 +252,10 @@ function resumenCurso(c){
   const acc = {};
   DIAS.forEach((_, d) => TRAMOS.forEach((t, ti) => {
     if (t.recreo) return;
-    const k = CURSOS[c][d][ti];
+    const k = CURSOS[c][d][ti] || "Sin datos";
     acc[k] = (acc[k] || 0) + minutos(ti);
   }));
-  return tablaResumen("Horas a la semana por materia", acc, () => 0);
+  return tablaResumen("Horas a la semana por materia", acc, k => k === "Sin datos" ? 1 : 0);
 }
 
 // ---- Pestaña 1 ----
@@ -303,14 +320,18 @@ function recreoHTML(d){
   if (ausentes.length) h += `<p class="nota aus">No está: ${esc(ausentes.join(", "))}</p>`;
   return h;
 }
+function contenidoTramo(d,t){
+  if (TRAMOS[t].recreo) return recreoHTML(d);
+  return MAESTROS.map(m => {
+    const v = donde(m,d,t), ap = esApoyo(m, m.horario[d][t]) ? " apoyo" : "";
+    return `<div class="row ${clase(v)}${ap}"><span>${esc(m.nombre)}</span><span>${esc(v)}</span></div>`;
+  }).join("");
+}
 function verTramo(d,t){
   pintarRejilla([d,t]);
   const tr = TRAMOS[t];
   let h = `<div class="panel"><h2>${DIAS[d]} · ${tr.hora}${tr.recreo?" (recreo)":""}</h2>`;
-  if (tr.recreo) h += recreoHTML(d);
-  else MAESTROS.map(m => [m, donde(m,d,t)]).forEach(([m,v]) => {
-    h += `<div class="row ${clase(v)}"><span>${esc(m.nombre)}</span><span>${esc(v)}</span></div>`;
-  });
+  h += contenidoTramo(d,t);
   $("detalle").innerHTML = h + "</div>";
   $("detalle").scrollIntoView({behavior:"smooth",block:"nearest"});
 }
@@ -340,21 +361,23 @@ function profesHTML(p){
   return (p.clase.length ? `<small>${esc(p.clase.join(p.sep))}</small>` : "") +
          (p.refuerzo.length ? `<small class="ref">Refuerzo: ${esc(p.refuerzo.join(", "))}</small>` : "");
 }
+const nombreCurso = c => c.startsWith("Inf.") ? c.replace("Inf.", "Infantil") : c + " de Primaria";
 function pintarCursos(sel){
   $("cursos").innerHTML = Object.keys(CURSOS).map(c =>
-    `<button data-c="${c}" aria-pressed="${c===sel}">${c} de Primaria</button>`).join("");
+    `<button data-c="${c}" aria-pressed="${c===sel}">${nombreCurso(c)}</button>`).join("");
   $("cursos").querySelectorAll("button").forEach(b => b.onclick = () => verCurso(b.dataset.c));
 }
 function verCurso(c){
   pintarCursos(c);
-  let h = `<h2>${c} de Primaria</h2><div class="wrap"><table><tr><th></th>${DIAS.map(d=>`<th>${d}</th>`).join("")}</tr>`;
+  let h = `<h2>${nombreCurso(c)}</h2>${c.startsWith("Inf.") ? '<p class="hint">Horario incompleto: solo constan los tramos que salen en los horarios de los maestros.</p>' : ""}<div class="wrap"><table><tr><th></th>${DIAS.map(d=>`<th>${d}</th>`).join("")}</tr>`;
   TRAMOS.forEach((t,ti) => {
     h += `<tr><th class="h ${t.recreo?"recreo":""}">${t.hora}</th>`;
     DIAS.forEach((_,di) => {
       if (t.recreo){ h += `<td class="recreo">Recreo</td>`; return; }
       const rs = unir(ti, di, (d,x) => CURSOS[c][d][x] + "|" + JSON.stringify(profesDe(c,d,x)));
       if (!rs) return;
-      h += `<td${rowspan(rs)}>${esc(CURSOS[c][di][ti])}${profesHTML(profesDe(c,di,ti))}</td>`;
+      const asig = CURSOS[c][di][ti];
+      h += asig ? `<td${rowspan(rs)}>${esc(asig)}${profesHTML(profesDe(c,di,ti))}</td>` : `<td${rowspan(rs)} class="libre">—</td>`;
     });
     h += "</tr>";
   });
@@ -397,11 +420,85 @@ function pintarEF(){
   $("tablaEF").innerHTML = h + "</table></div>";
 }
 
+// ---- Pestaña 0: Ahora ----
+const limites = ti => TRAMOS[ti].hora.split("–").map(x => { const [h, m] = x.trim().split(":"); return +h * 60 + +m; });
+const hhmm = d => d.getHours() + ":" + String(d.getMinutes()).padStart(2, "0");
+function siguienteTramo(now){
+  const min = now.getHours() * 60 + now.getMinutes();
+  for (let off = 0; off < 8; off++){
+    const wd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + off).getDay() - 1;
+    if (wd < 0 || wd > 4) continue;
+    for (let t = 0; t < TRAMOS.length; t++) if (off > 0 || limites(t)[0] > min) return [wd, t];
+  }
+  return null;
+}
+function pintarAhora(){
+  const now = new Date(), act = tramoActual(), [d, t] = act || siguienteTramo(now) || [0, 0];
+  const rec = TRAMOS[t].recreo ? " (recreo)" : "";
+  const cab = act
+    ? `<h2>Ahora · ${DIAS[d]} ${hhmm(now)}</h2><p class="hint">Tramo de ${TRAMOS[t].hora}${rec}</p>`
+    : `<h2>Ahora no hay clase</h2><p class="hint">Próximo tramo: ${DIAS[d]} ${TRAMOS[t].hora}${rec}</p>`;
+  $("ahora").innerHTML = `<div class="panel">${cab}${contenidoTramo(d, t)}</div>`;
+}
+
+// ---- Pestaña 6: Libre ----
+const GRUPOS_LIBRE = ["Apoyo", "Equipo directivo", "Coordinaciones y otras tareas", "Libres"];
+// Devuelve null si el maestro no está libre (da clase a un curso, no está o no hay datos); si está libre, su grupo y el detalle.
+function libreDe(m, d, t){
+  if (m.vacio || (m.noEsta && m.noEsta.includes(d))) return null;
+  const v = m.horario[d][t] || "";
+  if (esApoyo(m, v)) return {grupo: "Apoyo", detalle: v};
+  if (/\dº|Inf\./.test(v)) return null;                       // da clase a un curso
+  if (EQUIPO_DIRECTIVO.includes(m.nombre)) return {grupo: "Equipo directivo", detalle: v || "Libre"};
+  return v ? {grupo: "Coordinaciones y otras tareas", detalle: v} : {grupo: "Libres", detalle: "Libre"};
+}
+function libresEn(d, t){
+  const r = [];
+  MAESTROS.forEach(m => { const x = libreDe(m, d, t); if (x) r.push({nombre: m.nombre, grupo: x.grupo, detalle: x.detalle}); });
+  return r;
+}
+function pintarLibreRejilla(sel){
+  const ahora = tramoActual();
+  let h = `<table><tr><th></th>${DIAS.map(d => `<th>${d}</th>`).join("")}</tr>`;
+  TRAMOS.forEach((t, ti) => {
+    h += `<tr><th class="h ${t.recreo ? "recreo" : ""}">${t.hora}</th>`;
+    DIAS.forEach((_, di) => {
+      if (t.recreo){ h += `<td class="recreo">Recreo</td>`; return; }
+      const n = libresEn(di, ti).length;
+      const cls = [sel && sel[0] === di && sel[1] === ti ? "sel" : "", ahora && ahora[0] === di && ahora[1] === ti ? "ahora" : ""].join(" ");
+      h += `<td class="${cls}"><button class="slot" data-d="${di}" data-t="${ti}" aria-label="${DIAS[di]} ${t.hora}: ${n} libres">${n} libres</button></td>`;
+    });
+    h += "</tr>";
+  });
+  $("rejillaLibre").innerHTML = h + "</table>";
+  $("rejillaLibre").querySelectorAll(".slot").forEach(b => b.onclick = () => verLibres(+b.dataset.d, +b.dataset.t));
+}
+function verLibres(d, t){
+  pintarLibreRejilla([d, t]);
+  const lista = libresEn(d, t);
+  let h = `<div class="panel"><h2>${DIAS[d]} · ${TRAMOS[t].hora}</h2>`;
+  GRUPOS_LIBRE.forEach(g => {
+    const en = lista.filter(x => x.grupo === g);
+    if (!en.length) return;
+    h += `<div class="grupo"><h3>${g}</h3>` + (g === "Libres"
+      ? `<p>${esc(en.map(x => x.nombre).join(", "))}</p>`
+      : en.map(x => `<div class="row ${g === "Apoyo" ? "apoyo" : ""}"><span>${esc(x.nombre)}</span><span>${esc(x.detalle)}</span></div>`).join("")) + "</div>";
+  });
+  if (!lista.length) h += `<p class="hint">Nadie libre en este tramo.</p>`;
+  const sin = MAESTROS.filter(m => m.vacio).map(m => m.nombre);
+  if (sin.length) h += `<p class="nota">Sin horario cargado (no se cuentan): ${esc(sin.join(", "))}.</p>`;
+  $("detalleLibre").innerHTML = h + "</div>";
+  $("detalleLibre").scrollIntoView({behavior: "smooth", block: "nearest"});
+}
+
 pintarNombres(-1);
 pintarRejilla(null);
 pintarCursos(null);
 pintarPatios();
 pintarEF();
+pintarLibreRejilla(null);
+pintarAhora();
+setInterval(() => { if (!$("t0").hidden) pintarAhora(); }, 60000);   // la pestaña "Ahora" se actualiza sola
 </script>
 </body>
 </html>
