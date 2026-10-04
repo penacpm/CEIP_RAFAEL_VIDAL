@@ -112,7 +112,7 @@ const MAESTROS = [
   {nombre:"Guada", horario:[["4º Lengua", "6º Lengua", "5º Lengua", "", "4º Plástica", "2º Mates", "2º Mates"], ["5º Mates", "6º Lengua", "3º Lengua", "", "2º Lengua", "1º C. Medio", "1º C. Medio"], ["3º Lengua", "6º Mates", "5º Mates", "", "6º Ed. Valores", "2º C. Medio", "2º C. Medio"], ["4º Lengua", "6º Mates", "4º Atedu", "", "4º C. Medio", "2º C. Medio", "2º C. Medio"], ["1º Lengua", "3º Mates", "5º Lengua", "", "4º Atedu", "6º C. Medio", "6º C. Medio"]]},
   {nombre:"Carmen", horario:[["Inf. 3 años", "Ref. 3º Lengua", "3º Inglés", "", "2º Inglés", "4º Inglés", "4º Inglés"], ["1º Inglés", "Inf. 4 años", "5º Inglés", "", "4º Inglés", "2º Inglés", "2º Inglés"], ["Inf. 4 años", "Ref. 2º Mates", "4º Inglés", "", "5º Inglés", "Inf. 5 años", "Inf. 5 años"], ["Inf. 3 años", "Ref. 1º Mates", "1º Inglés", "", "3º Inglés", "5º Inglés", "5º Inglés"], ["Inf. 5 años", "Ref. 2º Mates", "1º Inglés", "", "2º Inglés", "3º Inglés", "3º Inglés"]]},
   {nombre:"Mª José Torres", noEsta:[1,2], horario:[["Religión 2º", "Religión 1º", "Religión 6º", "", "Religión 5º", "Religión 3º", "Religión Inf. 3 años"], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["Religión 3º", "Religión Inf. 5 años", "Religión 4º", "", "Religión 5º", "Religión 1º", ""], ["", "Religión Inf. 3 años", "Religión 6º", "", "Religión 4º", "Religión 2º", "Religión Inf. 5 años"]]},   // noEsta: días que no asiste (0=L, 1=M, 2=X, 3=J, 4=V)
-  {nombre:"Inma", horario:VACIO()},   // pendiente
+  {nombre:"Inma", horario:[["", "", "", "", "", "", "PT 3º"], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["PT 3º", "PT 3º", "", "", "", "", ""]]},
   {nombre:"Belén", horario:VACIO()},   // pendiente
 ];
 
@@ -152,8 +152,12 @@ const EF_PROFES = ["José","Eli"];
 // Si en un tramo no hay otro maestro con ese curso, se muestran como maestro de la clase.
 const APOYO = ["Guada"];
 
-// Equipo directivo: cuentan como libres siempre que no estén dando clase a un curso (pestaña "Libre").
+// Equipo directivo: cuentan como libres (pestaña "Libre") cuando no dan clase a un curso y tienen algo anotado (Func. Direcc, coordinación...).
 const EQUIPO_DIRECTIVO = ["Antonio Dorador","Eli","Celia"];
+
+// Especialistas que entran puntualmente a las clases a ayudar: en la pestaña "Por curso" salen en rojo y debajo, como "PT: Inma" o "AL: Belén".
+// En su horario escribe el curso, por ejemplo "PT 3º". No cuentan como apoyo ni como libres; en el resumen de horas se cuentan por curso.
+const ESPECIALISTAS = {"Inma":"PT", "Belén":"AL"};
 </script>
 <!-- ======================================================= -->
 
@@ -187,7 +191,7 @@ const EQUIPO_DIRECTIVO = ["Antonio Dorador","Eli","Celia"];
   <section id="t4" role="tabpanel" hidden><div id="tablaPatios"></div></section>
   <section id="t5" role="tabpanel" hidden><div id="tablaEF"></div></section>
   <section id="t6" role="tabpanel" hidden>
-    <p class="hint">Pulsa un tramo para ver quién está libre: apoyo, equipo directivo (si no da clase), coordinaciones y otras tareas, y quien no tiene nada asignado. El marco amarillo es el tramo actual.</p>
+    <p class="hint">Pulsa un tramo para ver quién está libre: apoyo, equipo directivo (si no da clase), coordinaciones y otras tareas. Quien tiene el tramo vacío ("Libre") no se cuenta, porque todavía no se sabe qué tiene. El marco amarillo es el tramo actual.</p>
     <div class="wrap" id="rejillaLibre"></div>
     <div id="detalleLibre"></div>
   </section>
@@ -249,6 +253,7 @@ function resumenMaestro(m){
     const dur = minutos(ti), v = donde(m, d, ti);
     if (t.recreo) { if (v.startsWith("Patio")) suma(v + " (recreo)", dur); return; }
     if (v === "NO ESTÁ") return suma("No está", dur);
+    if (ESPECIALISTAS[m.nombre] && m.horario[d][ti]) return suma(m.horario[d][ti].replace(/^(PT|AL)\s+/, ""), dur);   // PT/AL: horas por curso (1º, 2º, 3º...)
     if (esApoyo(m, m.horario[d][ti])) return suma("Apoyo", dur);   // todo el apoyo junto, sin separar por curso
     const partes = v.split(" / ");               // casilla con dos cosas: el tiempo se reparte a partes iguales
     partes.forEach(p => suma(p, dur / partes.length));
@@ -350,7 +355,9 @@ function verTramo(d,t){
 // (casillas "Ref. ..." y casillas de los maestros de APOYO que no son Atedu).
 function profesDe(curso, d, t){
   const celda = m => m.horario[d][t] || "";
-  const con = MAESTROS.filter(m => !(m.noEsta && m.noEsta.includes(d)) && celda(m).includes(curso));
+  const todos = MAESTROS.filter(m => !(m.noEsta && m.noEsta.includes(d)) && celda(m).includes(curso));
+  const especialistas = todos.filter(m => ESPECIALISTAS[m.nombre]);
+  const con = todos.filter(m => !ESPECIALISTAS[m.nombre]);
   const explicito = m => /^ref/i.test(celda(m));
   const apoyo = m => APOYO.includes(m.nombre) && !/atedu/i.test(celda(m));
   let ref = con.filter(m => explicito(m) || apoyo(m));
@@ -363,11 +370,13 @@ function profesDe(curso, d, t){
   const rango = m => /Religión/.test(celda(m)) ? 0 : /atedu/i.test(celda(m)) ? 1 : 2;
   const mixto = clase.some(m => rango(m) === 0) && clase.some(m => rango(m) === 1);
   if (mixto) clase = clase.slice().sort((a, b) => rango(a) - rango(b));
-  return {clase: clase.map(m => m.nombre), refuerzo: ref.map(m => m.nombre), sep: mixto ? " / " : ", "};
+  return {clase: clase.map(m => m.nombre), refuerzo: ref.map(m => m.nombre), sep: mixto ? " / " : ", ",
+          especialistas: especialistas.map(m => ESPECIALISTAS[m.nombre] + ": " + m.nombre)};
 }
 function profesHTML(p){
   return (p.clase.length ? `<small>${esc(p.clase.join(p.sep))}</small>` : "") +
-         (p.refuerzo.length ? `<small class="ref">Refuerzo: ${esc(p.refuerzo.join(", "))}</small>` : "");
+         (p.refuerzo.length ? `<small class="ref">Refuerzo: ${esc(p.refuerzo.join(", "))}</small>` : "") +
+         p.especialistas.map(x => `<small class="ref">${esc(x)}</small>`).join("");
 }
 const incompleto = c => DIAS.some((_, d) => TRAMOS.some((t, ti) => !t.recreo && !CURSOS[c][d][ti]));
 const nombreCurso = c => c.startsWith("Inf.") ? c.replace("Inf.", "Infantil") : c + " de Primaria";
@@ -451,15 +460,15 @@ function pintarAhora(){
 }
 
 // ---- Pestaña 6: Libre ----
-const GRUPOS_LIBRE = ["Apoyo", "Equipo directivo", "Coordinaciones y otras tareas", "Libres"];
+const GRUPOS_LIBRE = ["Apoyo", "Equipo directivo", "Coordinaciones y otras tareas"];
 // Devuelve null si el maestro no está libre (da clase a un curso, no está o no hay datos); si está libre, su grupo y el detalle.
 function libreDe(m, d, t){
-  if (m.vacio || (m.noEsta && m.noEsta.includes(d))) return null;
+  if (m.vacio || ESPECIALISTAS[m.nombre] || (m.noEsta && m.noEsta.includes(d))) return null;   // PT y AL no cuentan como libres
   const v = m.horario[d][t] || "";
   if (esApoyo(m, v)) return {grupo: "Apoyo", detalle: v};
   if (/\dº|Inf\./.test(v)) return null;                       // da clase a un curso
-  if (EQUIPO_DIRECTIVO.includes(m.nombre)) return {grupo: "Equipo directivo", detalle: v || "Libre"};
-  return v ? {grupo: "Coordinaciones y otras tareas", detalle: v} : {grupo: "Libres", detalle: "Libre"};
+  if (!v) return null;                                      // casilla vacía ("Libre"): tiene algo sin determinar, no cuenta como libre
+  return {grupo: EQUIPO_DIRECTIVO.includes(m.nombre) ? "Equipo directivo" : "Coordinaciones y otras tareas", detalle: v};
 }
 function libresEn(d, t){
   const r = [];
@@ -489,9 +498,8 @@ function verLibres(d, t){
   GRUPOS_LIBRE.forEach(g => {
     const en = lista.filter(x => x.grupo === g);
     if (!en.length) return;
-    h += `<div class="grupo"><h3>${g}</h3>` + (g === "Libres"
-      ? `<p>${esc(en.map(x => x.nombre).join(", "))}</p>`
-      : en.map(x => `<div class="row ${g === "Apoyo" ? "apoyo" : ""}"><span>${esc(x.nombre)}</span><span>${esc(x.detalle)}</span></div>`).join("")) + "</div>";
+    h += `<div class="grupo"><h3>${g}</h3>` +
+      en.map(x => `<div class="row ${g === "Apoyo" ? "apoyo" : ""}"><span>${esc(x.nombre)}</span><span>${esc(x.detalle)}</span></div>`).join("") + "</div>";
   });
   if (!lista.length) h += `<p class="hint">Nadie libre en este tramo.</p>`;
   const sin = MAESTROS.filter(m => m.vacio).map(m => m.nombre);
