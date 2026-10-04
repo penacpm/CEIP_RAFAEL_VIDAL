@@ -158,6 +158,9 @@ const EQUIPO_DIRECTIVO = ["Antonio Dorador","Eli","Celia"];
 // Especialistas que entran puntualmente a las clases a ayudar: en la pestaña "Por curso" salen en rojo y debajo, como "PT: Inma" o "AL: Belén".
 // En su horario escribe el curso, por ejemplo "PT 3º". No cuentan como apoyo ni como libres; en el resumen de horas se cuentan por curso.
 const ESPECIALISTAS = {"Inma":"PT", "Belén":"AL"};
+
+// Maestros que, cuando están en Infantil, cuentan como libres (pestaña "Libre"): aparecen en el grupo "Infantil".
+const LIBRE_EN_INFANTIL = ["Mª José Soto"];
 </script>
 <!-- ======================================================= -->
 
@@ -191,7 +194,7 @@ const ESPECIALISTAS = {"Inma":"PT", "Belén":"AL"};
   <section id="t4" role="tabpanel" hidden><div id="tablaPatios"></div></section>
   <section id="t5" role="tabpanel" hidden><div id="tablaEF"></div></section>
   <section id="t6" role="tabpanel" hidden>
-    <p class="hint">Pulsa un tramo para ver quién está libre: apoyo, equipo directivo (si no da clase), coordinaciones y otras tareas. Quien tiene el tramo vacío ("Libre") no se cuenta, porque todavía no se sabe qué tiene. El marco amarillo es el tramo actual.</p>
+    <p class="hint">Pulsa un tramo para ver quién está libre: apoyo, equipo directivo (si no da clase), coordinaciones y otras tareas, y Mª José Soto cuando está en Infantil. Quien tiene el tramo vacío ("Libre") no se cuenta, porque todavía no se sabe qué tiene. El marco amarillo es el tramo actual.</p>
     <div class="wrap" id="rejillaLibre"></div>
     <div id="detalleLibre"></div>
   </section>
@@ -460,11 +463,12 @@ function pintarAhora(){
 }
 
 // ---- Pestaña 6: Libre ----
-const GRUPOS_LIBRE = ["Apoyo", "Equipo directivo", "Coordinaciones y otras tareas"];
+const GRUPOS_LIBRE = ["Apoyo", "Infantil", "Equipo directivo", "Coordinaciones y otras tareas"];
 // Devuelve null si el maestro no está libre (da clase a un curso, no está o no hay datos); si está libre, su grupo y el detalle.
 function libreDe(m, d, t){
   if (m.vacio || ESPECIALISTAS[m.nombre] || (m.noEsta && m.noEsta.includes(d))) return null;   // PT y AL no cuentan como libres
   const v = m.horario[d][t] || "";
+  if (LIBRE_EN_INFANTIL.includes(m.nombre) && /Inf\./.test(v)) return {grupo: "Infantil", detalle: v};
   if (esApoyo(m, v)) return {grupo: "Apoyo", detalle: v};
   if (/\dº|Inf\./.test(v)) return null;                       // da clase a un curso
   if (!v) return null;                                      // casilla vacía ("Libre"): tiene algo sin determinar, no cuenta como libre
