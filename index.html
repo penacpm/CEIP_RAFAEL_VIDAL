@@ -12,15 +12,16 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>CEIP RAFAEL VIDAL 26/27</title>
 <style>
-:root{--bg:#f5f7fa;--card:#fff;--ink:#1b2733;--muted:#6b7a89;--line:#d9e0e7;--accent:#1f5f8b;--accent-soft:#e3eef6;--free:#eef1f4;--recreo:#fdf0d5;--aus:#a32d2d;--aus-bg:#fbe4e4;--verde:#e0f0dc}
-@media (prefers-color-scheme:dark){:root{--bg:#141a21;--card:#1d252e;--ink:#e6ecf1;--muted:#93a3b3;--line:#303b47;--accent:#6db3e0;--accent-soft:#23384a;--free:#232c36;--recreo:#3b3220;--aus:#f2a0a0;--aus-bg:#472626;--verde:#27402b}}
+:root{--bg:#f5f7fa;--card:#fff;--ink:#1b2733;--muted:#6b7a89;--line:#d9e0e7;--accent:#1f5f8b;--accent-soft:#e3eef6;--free:#eef1f4;--recreo:#fdf0d5;--aus:#a32d2d;--aus-bg:#fbe4e4;--verde:#e0f0dc;--on-accent:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#141a21;--card:#1d252e;--ink:#e6ecf1;--muted:#93a3b3;--line:#303b47;--accent:#6db3e0;--accent-soft:#23384a;--free:#232c36;--recreo:#3b3220;--aus:#f2a0a0;--aus-bg:#472626;--verde:#27402b;--on-accent:#0f1a24}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 header{padding:20px 16px 0;max-width:960px;margin:0 auto}
 h1{font-size:1.4rem;margin:0 0 12px}
-nav{display:flex;gap:4px;border-bottom:2px solid var(--line);overflow-x:auto}
-nav button{white-space:nowrap;font:inherit;background:none;border:0;padding:10px 16px;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-2px}
-nav button[aria-selected=true]{color:var(--accent);border-color:var(--accent);font-weight:600}
+nav{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding-bottom:12px}
+@media (min-width:720px){nav{grid-template-columns:repeat(8,1fr)}}
+nav button{font:inherit;font-size:.85rem;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 2px;cursor:pointer;color:var(--muted);text-align:center}
+nav button[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
 main{max-width:960px;margin:0 auto;padding:16px}
 button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .names{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
@@ -45,7 +46,11 @@ td.ahora{box-shadow:inset 0 0 0 3px #e0a100}
 .row.ausente span:last-child,.row.apoyo span:last-child{color:var(--aus);font-weight:600}
 td.ausente{background:var(--aus-bg);color:var(--aus);font-weight:600}
 td.apoyo,.ap{color:var(--aus);font-weight:600}
-#t3 td,#t5 td{vertical-align:top}
+#t3 td,#t5 td,#t7 td{vertical-align:top}
+#t7 .ses{display:block;margin-bottom:8px}
+#t7 small{display:block;color:var(--muted);font-size:.78rem}
+#t7 small.en{margin-top:4px}
+#t7 td{text-align:left}
 .resumen{margin-top:20px}
 .resumen h3{font-size:1rem;margin:0 0 8px}
 .resumen table{min-width:0;max-width:440px}
@@ -85,12 +90,12 @@ const TRAMOS = [
 // Tramos que se funden en una sola casilla cuando son iguales (posiciones en TRAMOS: 5 = 13:00-13:30, 6 = 13:30-14:00).
 const UNIR_TRAMOS = [5, 6];
 
-// Horario vacío: 5 días x 7 tramos (todo "Libre" hasta que se rellene).
+// Horario vacío: 5 días x 7 tramos (todo "Sin datos" hasta que se rellene).
 const VACIO = () => Array.from({length:5}, () => Array(7).fill(""));
 
 // Cada maestro tiene 5 días (L a V) y, por día, un valor por tramo
 // en el orden de TRAMOS (el 4º es el recreo y se ignora).
-// Escribe dónde está ("1º A", "Gimnasio"...). Vacío "" = Libre.
+// Escribe dónde está ("1º A", "Gimnasio"...). Vacío "" = Sin datos.
 // Ejemplo para rellenar a mano:
 //   {nombre:"Eli", horario:[
 //     ["1º A","1º A","Inglés 3º","","1º A","Biblioteca","1º A"],   // Lunes
@@ -99,10 +104,10 @@ const VACIO = () => Array.from({length:5}, () => Array(7).fill(""));
 //   ]},
 const MAESTROS = [
   {nombre:"Antonio Dorador", horario:[["AP. Familias", "Act. PC", "Func. Direcc", "", "Coord. Convivencia", "Act. PC", "Act. PC"], ["Func. Direcc", "Coord. TDE", "Func. Direcc", "", "Func. Direcc", "Func. Direcc", "Func. Direcc"], ["Func. Direcc", "Func. Direcc", "Func. Direcc", "", "", "Func. Direcc", "Func. Direcc"], ["Robótica 6º", "Coord. TDE", "Coord. Convivencia", "", "Func. Direcc", "Func. Direcc", "Func. Direcc"], ["Robótica 5º / Act. PC", "Coord. Convivencia", "", "", "Func. Direcc", "AP. Familias", "AP. Familias"]]},
-  {nombre:"Eli", horario:[["Func. Direcc", "Func. Direcc", "2º Ed. Física", "", "1º Ed. Física", "Inf. 5 años Psicomotricidad", "Inf. 5 años Psicomotricidad"], ["Biblioteca", "Coord. Ciclo", "Func. Direcc", "", "1º Ed. Física", "5º Ed. Física", "5º Ed. Física"], ["Biblioteca", "5º Ed. Física", "Func. Direcc", "", "2º Ed. Física", "6º Ed. Física", "6º Ed. Física"], ["Biblioteca", "Func. Direcc", "2º Ed. Física", "", "1º Ed. Física", "6º Ed. Física", "6º Ed. Física"], ["Func. Direcc", "6º Ed. Física", "2º Ed. Física", "", "1º Ed. Física", "5º Ed. Física", "5º Ed. Física"]]},
+  {nombre:"Eli", horario:[["Func. Direcc", "Func. Direcc", "2º Ed. Física", "", "1º Ed. Física", "Biblioteca", "Biblioteca"], ["Biblioteca", "Coord. Ciclo", "Func. Direcc", "", "1º Ed. Física", "5º Ed. Física", "5º Ed. Física"], ["Biblioteca", "5º Ed. Física", "Func. Direcc", "", "2º Ed. Física", "6º Ed. Física", "6º Ed. Física"], ["Biblioteca", "Func. Direcc", "2º Ed. Física", "", "1º Ed. Física", "6º Ed. Física", "6º Ed. Física"], ["Func. Direcc", "6º Ed. Física", "2º Ed. Física", "", "1º Ed. Física", "5º Ed. Física", "5º Ed. Física"]]},
   {nombre:"Maribel", horario:[["Coord. Ciclo", "Inf. 3 años C.R.R", "Inf. 3 años C.A", "", "Inf. 3 años C.R.R", "Inf. 3 años D.E.E", "Inf. 3 años Atedu"], [">> 55 años", "Inf. 3 años C.R.R", "Inf. 3 años C.A", "", "Inf. 3 años D.E.E", "Inf. 3 años C.A", "Inf. 3 años C.A"], ["Inf. 3 años C.A", "Inf. 3 años C.R.R", "Inf. 3 años D.E.E", "", "Inf. 3 años C.R.R", "Inf. 3 años D.E.E", "Inf. 3 años D.E.E"], [">> 55 años", "Inf. 3 años C.R.R", "Inf. 3 años C.A", "", "Inf. 3 años C.R.R", "Inf. 3 años D.E.E", "Inf. 3 años D.E.E"], ["Inf. 3 años C.A", "Inf. 3 años Atedu", "Inf. 3 años C.A", "", "Inf. 3 años D.E.E", "Inf. 3 años D.E.E", "Inf. 3 años D.E.E"]]},
   {nombre:"Celia", horario:[["", "", "", "", "Func. Direcc", "", ""], ["", "", "", "", "Func. Direcc", "", ""], ["", "", "", "", "", "", ""], ["", "", "Func. Direcc", "", "Func. Direcc", "", ""], ["", "", "", "", "Func. Direcc", "", ""]]},
-  {nombre:"Loli", horario:VACIO()},   // pendiente
+  {nombre:"Loli", horario:[["", "", "", "", "", "Inf. 5 años Psicomotricidad", "Inf. 5 años Psicomotricidad"], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""]]},
   {nombre:"Mª José Soto", horario:[["1º Lengua", "1º Atedu", "1º Mates", "", "Inf. 4 años", ">> 55 años", ">> 55 años"], ["Inf. 3 años", "1º Lengua", "1º Mates", "", "Inf. 4 años", "1º C. Medio", "1º C. Medio"], ["1º Lengua", "1º C. Medio", "1º Mates", "", "1º Mates", "1º Lengua", "1º Lengua"], ["1º Lengua", "1º Mates", "Inf. 4 años", "", "Inf. 4 años", "1º Atedu", "1º C. Medio"], ["1º Lengua", "1º Mates", ">> 55 años", "", "Inf. 4 años", "1º Plástica", "1º Plástica"]]},
   {nombre:"Susi", horario:[["Coord. Ciclo", "2º Lengua", "Ref. 1º Mates", "", "Ref. 2º Inglés", "2º Mates", "2º Mates"], ["2º Lengua", "2º Mates", "Ref. 1º Mates", "", "2º Lengua", "Ref. 2º Inglés", "Ref. 2º Inglés"], ["2º Lengua", "2º Mates", "2º Mates", "", "Ref. 1º Mates", "2º C. Medio", "2º C. Medio"], ["2º Lengua", "2º Mates", "Ref. 5º Mates", "", "2º Plástica", "2º C. Medio", "2º C. Medio"], ["2º Lengua", "2º Mates", "Ref. 4º Mates", "", "Ref. 2º Inglés", "Ref. 1º Plástica", "2º C. Medio"]]},
   {nombre:"José", horario:[["3º Mates", "3º Lengua", "Ref. 4º C. Medio", "", "3º Ed. Física", "Ref. 4º Inglés", "3º Lengua"], ["3º Mates", "3º Mates", "3º Lengua", "", "3º C. Medio", "4º Ed. Física", "4º Ed. Física"], ["3º Lengua", "3º Mates", "3º Lengua", "", "3º Ed. Física", "3º C. Medio", "3º C. Medio"], ["Ref. 1º Lengua", "3º Mates", "3º Ed. Física", "", "Ref. 2º Plástica", "4º Ed. Física", "4º Ed. Física"], ["3º Lengua", "3º Mates", "3º C. Medio", "", "3º Ed. Física", "4º Ed. Física", "4º Ed. Física"]]},
@@ -113,7 +118,7 @@ const MAESTROS = [
   {nombre:"Carmen", horario:[["Inf. 3 años", "Ref. 3º Lengua", "3º Inglés", "", "2º Inglés", "4º Inglés", "4º Inglés"], ["1º Inglés", "Inf. 4 años", "5º Inglés", "", "4º Inglés", "2º Inglés", "2º Inglés"], ["Inf. 4 años", "Ref. 2º Mates", "4º Inglés", "", "5º Inglés", "Inf. 5 años", "Inf. 5 años"], ["Inf. 3 años", "Ref. 1º Mates", "1º Inglés", "", "3º Inglés", "5º Inglés", "5º Inglés"], ["Inf. 5 años", "Ref. 2º Mates", "1º Inglés", "", "2º Inglés", "3º Inglés", "3º Inglés"]]},
   {nombre:"Mª José Torres", noEsta:[1,2], horario:[["Religión 2º", "Religión 1º", "Religión 6º", "", "Religión 5º", "Religión 3º", "Religión Inf. 3 años"], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["Religión 3º", "Religión Inf. 5 años", "Religión 4º", "", "Religión 5º", "Religión 1º", "Religión Inf. 4 años"], ["Religión Inf. 4 años", "Religión Inf. 3 años", "Religión 6º", "", "Religión 4º", "Religión 2º", "Religión Inf. 5 años"]]},   // noEsta: días que no asiste (0=L, 1=M, 2=X, 3=J, 4=V)
   {nombre:"Inma", horario:[["", "", "", "", "", "", "PT 3º"], ["", "", "", "", "", "PT 6º Lingüística", "PT 6º Lingüística"], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["PT 3º", "PT 3º", "", "", "", "", ""]]},
-  {nombre:"Belén", horario:VACIO()},   // pendiente
+  {nombre:"Ana", horario:VACIO()},   // pendiente
 ];
 
 // Cuadrante de patios (recreo). Quien no aparezca aquí verá "-" (libre) en el recreo.
@@ -145,7 +150,7 @@ const CURSOS = {
 // Orden en que se muestran los patios.
 const ORDEN_PATIOS = ["Patio 1º-3º","Patio 4º-6º","Patio Infantil"];
 
-// Maestros que salen en la pestaña de Educación Física (se toman sus casillas que contienen "Ed. Física" o "Psicomotricidad").
+// Maestros que salen en la pestaña de Educación Física (se toman sus casillas que contienen "Ed. Física").
 const EF_PROFES = ["José","Eli"];
 
 // Maestros de apoyo: salvo cuando dan Atedu, entran a reforzar (salen en rojo en la pestaña "Por curso").
@@ -155,12 +160,36 @@ const APOYO = ["Guada"];
 // Equipo directivo: cuentan como libres (pestaña "Libre") cuando no dan clase a un curso y tienen algo anotado (Func. Direcc, coordinación...).
 const EQUIPO_DIRECTIVO = ["Antonio Dorador","Eli","Celia"];
 
-// Especialistas que entran puntualmente a las clases a ayudar: en la pestaña "Por curso" salen en rojo y debajo, como "PT: Inma" o "AL: Belén".
+// Especialistas que entran puntualmente a las clases a ayudar: en la pestaña "Por curso" salen en rojo y debajo, como "PT: Inma" o "AL: Ana".
 // En su horario escribe el curso, por ejemplo "PT 3º". No cuentan como apoyo ni como libres; en el resumen de horas se cuentan por curso.
-const ESPECIALISTAS = {"Inma":"PT", "Belén":"AL"};
+const ESPECIALISTAS = {"Inma":"PT", "Ana":"AL"};
 
 // Maestros que, cuando están en Infantil, cuentan como libres (pestaña "Libre"): aparecen en el grupo "Infantil".
 const LIBRE_EN_INFANTIL = ["Mª José Soto"];
+
+// Horario de la biblioteca escolar: por franja y día (L a V), las sesiones como [hora, grupo].
+// "tramos" son las posiciones de TRAMOS que cubre la franja; con ellas se calcula quién está en la biblioteca (casillas "Biblioteca").
+const BIBLIOTECA = {
+  franjas: [
+    {hora:"9:00 – 10:00", tramos:[0], dias:[
+      [],
+      [["9:10 – 9:30","2º Primaria"],["9:30 – 9:50","3º Primaria"]],
+      [],
+      [["9:10 – 9:30","4º Primaria"],["9:30 – 9:50","5º Primaria"]],
+      []]},
+    {hora:"13:00 – 14:00", tramos:[5,6], dias:[
+      [["13:00 – 13:20","Infantil 4 años"],["13:20 – 13:40","6º Primaria"]],
+      [["13:00 – 13:20","Infantil 5 años"],["13:20 – 13:40","1º Primaria"]],
+      [],
+      [],
+      []]},
+  ],
+  notas: [
+    {dia:"Jueves", hora:"9:00 – 10:00", textos:[
+      "Coordinación entre proyectos del centro escolar y formación en centros.",
+      "Biblioteca DUA: taller de radio, proyectos, efemérides, club de lectura, talleres de lectura, cuentacuentos, debates, noticias, entre otras."]},
+  ],
+};
 </script>
 <!-- ======================================================= -->
 
@@ -168,11 +197,12 @@ const LIBRE_EN_INFANTIL = ["Mª José Soto"];
   <h1>CEIP RAFAEL VIDAL 26/27</h1>
   <nav role="tablist">
     <button role="tab" id="tab0" aria-selected="true" aria-controls="t0">Ahora</button>
-    <button role="tab" id="tab1" aria-selected="false" aria-controls="t1">Por maestro</button>
-    <button role="tab" id="tab2" aria-selected="false" aria-controls="t2">Por tramo horario</button>
-    <button role="tab" id="tab3" aria-selected="false" aria-controls="t3">Por curso</button>
+    <button role="tab" id="tab1" aria-selected="false" aria-controls="t1">Maestros</button>
+    <button role="tab" id="tab2" aria-selected="false" aria-controls="t2">Tramos</button>
+    <button role="tab" id="tab3" aria-selected="false" aria-controls="t3">Cursos</button>
     <button role="tab" id="tab4" aria-selected="false" aria-controls="t4">Patios</button>
     <button role="tab" id="tab5" aria-selected="false" aria-controls="t5">Ed. Física</button>
+    <button role="tab" id="tab7" aria-selected="false" aria-controls="t7">Biblioteca</button>
     <button role="tab" id="tab6" aria-selected="false" aria-controls="t6">Libre</button>
   </nav>
 </header>
@@ -193,8 +223,9 @@ const LIBRE_EN_INFANTIL = ["Mª José Soto"];
   </section>
   <section id="t4" role="tabpanel" hidden><div id="tablaPatios"></div></section>
   <section id="t5" role="tabpanel" hidden><div id="tablaEF"></div></section>
+  <section id="t7" role="tabpanel" hidden><div id="tablaBiblio"></div></section>
   <section id="t6" role="tabpanel" hidden>
-    <p class="hint">Pulsa un tramo para ver quién está libre: apoyo, equipo directivo (si no da clase), coordinaciones y otras tareas, y Mª José Soto cuando está en Infantil. Quien tiene el tramo vacío ("Libre") no se cuenta, porque todavía no se sabe qué tiene. El marco amarillo es el tramo actual.</p>
+    <p class="hint">Pulsa un tramo para ver quién está libre: apoyo, equipo directivo (si no da clase), coordinaciones y otras tareas, y Mª José Soto cuando está en Infantil. Quien tiene el tramo vacío ("Sin datos") no se cuenta, porque todavía no se sabe qué tiene. El marco amarillo es el tramo actual.</p>
     <div class="wrap" id="rejillaLibre"></div>
     <div id="detalleLibre"></div>
   </section>
@@ -208,14 +239,14 @@ MAESTROS.sort((a, b) => a.nombre.localeCompare(b.nombre, "es", {sensitivity:"bas
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const patio = (m, d) => Object.keys(PATIO[d]).find(k => PATIO[d][k].includes(m.nombre));
-const donde = (m, d, t) => m.noEsta && m.noEsta.includes(d) ? "NO ESTÁ" : TRAMOS[t].recreo ? (patio(m, d) || "-") : m.vacio ? "Sin datos" : (m.horario[d][t] || "Libre");
+const donde = (m, d, t) => m.noEsta && m.noEsta.includes(d) ? "NO ESTÁ" : TRAMOS[t].recreo ? (patio(m, d) || "-") : m.vacio ? "Sin datos" : (m.horario[d][t] || "Sin datos");
 const apagado = v => v === "-" || v === "Libre" || v === "Sin datos";
 const esApoyo = (m, v) => !!v && (/^ref/i.test(v) || (APOYO.includes(m.nombre) && !/atedu/i.test(v)));
 const clase = v => v === "NO ESTÁ" ? "ausente" : apagado(v) ? "libre" : "";
 
 // ---- Pestañas ----
 function mostrarTab(n){
-  [0,1,2,3,4,5,6].forEach(i => {
+  [0,1,2,3,4,5,6,7].forEach(i => {
     $("t"+i).hidden = i !== n;
     $("tab"+i).setAttribute("aria-selected", i === n);
   });
@@ -227,6 +258,7 @@ $("tab4").onclick = () => mostrarTab(4);
 $("tab5").onclick = () => mostrarTab(5);
 $("tab0").onclick = () => mostrarTab(0);
 $("tab6").onclick = () => mostrarTab(6);
+$("tab7").onclick = () => mostrarTab(7);
 
 // ---- Unir casillas iguales (13:00-13:30 y 13:30-14:00) ----
 // Devuelve el rowspan de la casilla: 2 si se une con la de abajo, 0 si ya está unida con la de arriba, 1 si va sola.
@@ -269,7 +301,7 @@ function resumenMaestro(m){
     partes.forEach(p => suma(p, dur / partes.length));
   }));
   return tablaResumen("Horas a la semana por materia / actividad", acc,
-    k => k.startsWith("Patio") ? 1 : k === "Libre" ? 2 : k === "No está" ? 3 : 0);
+    k => k.startsWith("Patio") ? 1 : k === "Sin datos" ? 2 : k === "No está" ? 3 : 0);
 }
 function resumenCurso(c){
   const acc = {};
@@ -433,14 +465,14 @@ function pintarPatios(){
 function pintarEF(){
   const profes = EF_PROFES.map(n => MAESTROS.find(m => m.nombre === n)).filter(Boolean);
   const leyenda = profes.map((m,i) => `<span class="chip c${i}">${esc(m.nombre)}</span>`).join("");
-  let h = `<p class="hint">Tramos de Educación Física (y psicomotricidad en Infantil) de cada maestro, con el curso.</p><div class="leyenda">${leyenda}</div><div class="wrap"><table><tr><th></th>${DIAS.map(d => `<th>${d}</th>`).join("")}</tr>`;
+  let h = `<p class="hint">Tramos de Educación Física de cada maestro, con el curso.</p><div class="leyenda">${leyenda}</div><div class="wrap"><table><tr><th></th>${DIAS.map(d => `<th>${d}</th>`).join("")}</tr>`;
   TRAMOS.forEach((t,ti) => {
     h += `<tr><th class="h ${t.recreo?"recreo":""}">${t.hora}</th>`;
     DIAS.forEach((_,di) => {
       if (t.recreo){ h += `<td class="recreo">Recreo</td>`; return; }
       const chipsDe = (d,x) => profes.map((m,i) => {
         const v = m.horario[d][x] || "";
-        return /Ed\. Física|Psicomotricidad/.test(v) ? `<span class="chip c${i}">${esc(v.replace(" Ed. Física",""))} · ${esc(m.nombre)}</span>` : "";
+        return /Ed\. Física/.test(v) ? `<span class="chip c${i}">${esc(v.replace(" Ed. Física",""))} · ${esc(m.nombre)}</span>` : "";
       }).join("");
       const rs = unir(ti, di, chipsDe);
       if (!rs) return;
@@ -481,7 +513,7 @@ function libreDe(m, d, t){
   if (LIBRE_EN_INFANTIL.includes(m.nombre) && /Inf\./.test(v)) return {grupo: "Infantil", detalle: v};
   if (esApoyo(m, v)) return {grupo: "Apoyo", detalle: v};
   if (/\dº|Inf\./.test(v)) return null;                       // da clase a un curso
-  if (!v) return null;                                      // casilla vacía ("Libre"): tiene algo sin determinar, no cuenta como libre
+  if (!v) return null;                                      // casilla vacía ("Sin datos"): tiene algo sin determinar, no cuenta como libre
   return {grupo: EQUIPO_DIRECTIVO.includes(m.nombre) ? "Equipo directivo" : "Coordinaciones y otras tareas", detalle: v};
 }
 function libresEn(d, t){
@@ -522,11 +554,31 @@ function verLibres(d, t){
   $("detalleLibre").scrollIntoView({behavior: "smooth", block: "nearest"});
 }
 
+// ---- Pestaña 7: Biblioteca ----
+function pintarBiblioteca(){
+  const quien = (d, tramos) => MAESTROS.filter(m => !(m.noEsta && m.noEsta.includes(d)) && tramos.some(t => (m.horario[d][t] || "").includes("Biblioteca"))).map(m => m.nombre);
+  let h = `<p class="hint">Horario de la biblioteca escolar. Debajo de las sesiones, quién está en la biblioteca según su horario.</p><div class="wrap"><table><tr><th></th>${DIAS.map(d => `<th>${d}</th>`).join("")}</tr>`;
+  BIBLIOTECA.franjas.forEach(f => {
+    h += `<tr><th class="h">${f.hora}</th>`;
+    DIAS.forEach((_, di) => {
+      const ses = f.dias[di] || [], en = quien(di, f.tramos);
+      if (!ses.length && !en.length){ h += `<td class="libre">—</td>`; return; }
+      h += "<td>" + ses.map(([hora, grupo]) => `<span class="ses"><strong>${esc(grupo)}</strong><small>${esc(hora)}</small></span>`).join("") +
+           (en.length ? `<small class="en">En la biblioteca: ${esc(en.join(", "))}</small>` : "") + "</td>";
+    });
+    h += "</tr>";
+  });
+  h += "</table></div>";
+  BIBLIOTECA.notas.forEach(n => h += `<div class="panel"><h2>${n.dia} · ${n.hora}</h2>${n.textos.map(t => `<p>${esc(t)}</p>`).join("")}</div>`);
+  $("tablaBiblio").innerHTML = h;
+}
+
 pintarNombres(-1);
 pintarRejilla(null);
 pintarCursos(null);
 pintarPatios();
 pintarEF();
+pintarBiblioteca();
 pintarLibreRejilla(null);
 pintarAhora();
 setInterval(() => { if (!$("t0").hidden) pintarAhora(); }, 60000);   // la pestaña "Ahora" se actualiza sola
