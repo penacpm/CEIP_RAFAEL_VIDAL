@@ -118,17 +118,18 @@ const MAESTROS = [
   {nombre:"Carmen", horario:[["Inf. 3 años", "Ref. 3º Lengua", "3º Inglés", "", "2º Inglés", "4º Inglés", "4º Inglés"], ["1º Inglés", "Inf. 4 años", "5º Inglés", "", "4º Inglés", "2º Inglés", "2º Inglés"], ["Inf. 4 años", "Ref. 2º Mates", "4º Inglés", "", "5º Inglés", "Inf. 5 años", "Inf. 5 años"], ["Inf. 3 años", "Ref. 1º Mates", "1º Inglés", "", "3º Inglés", "5º Inglés", "5º Inglés"], ["Inf. 5 años", "Ref. 2º Mates", "1º Inglés", "", "2º Inglés", "3º Inglés", "3º Inglés"]]},
   {nombre:"Mª José Torres", noEsta:[1,2], horario:[["Religión 2º", "Religión 1º", "Religión 6º", "", "Religión 5º", "Religión 3º", "Religión Inf. 3 años"], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["Religión 3º", "Religión Inf. 5 años", "Religión 4º", "", "Religión 5º", "Religión 1º", "Religión Inf. 4 años"], ["Religión Inf. 4 años", "Religión Inf. 3 años", "Religión 6º", "", "Religión 4º", "Religión 2º", "Religión Inf. 5 años"]]},   // noEsta: días que no asiste (0=L, 1=M, 2=X, 3=J, 4=V)
   {nombre:"Inma", horario:[["", "", "", "", "", "", "PT 3º"], ["", "", "", "", "", "PT 6º Lingüística", "PT 6º Lingüística"], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["PT 3º", "PT 3º", "", "", "", "", ""]]},
-  {nombre:"Ana", horario:VACIO()},   // pendiente
+  {nombre:"Ana", noEsta:[1,2,3,4], horario:VACIO()},   // solo viene los lunes; pendiente su horario de los lunes
+  {nombre:"Elena", noEsta:[1,2,3,4], horario:[["Sala de profesores", "Sala de profesores", "Sala de profesores", "", "Sala de profesores", "Sala de profesores", "Sala de profesores"], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""]]},   // orientadora: solo viene los lunes (en la sala de profesores)
 ];
 
 // Cuadrante de patios (recreo). Quien no aparezca aquí verá "-" (libre) en el recreo.
 // Un objeto por día (L a V): "tipo de patio": [maestros]. Los nombres deben coincidir con los de MAESTROS.
 const PATIO = [
-  {"Patio 1º-3º":["Susi","José"], "Patio 4º-6º":["Paula","Inma"]},                                               // Lunes
-  {"Patio 1º-3º":["Mª José Soto","Eli"], "Patio Infantil":["Loli"], "Patio 4º-6º":["Paloma","Lorena"]},          // Martes
-  {"Patio 1º-3º":["Susi","José"], "Patio 4º-6º":["Guada","Carmen"]},                                             // Miércoles
-  {"Patio 1º-3º":["Mª José Soto","Eli"], "Patio Infantil":["Loli"], "Patio 4º-6º":["Paloma","Lorena"]},          // Jueves
-  {"Patio 1º-3º":["Guada","Carmen"], "Patio 4º-6º":["Paula","Inma"]},                                            // Viernes
+  {"Patio 1º-3º":["Susi","José"], "Patio 4º-6º":["Paula","Inma"], "Patio Infantil":["Celia","Maribel"]},                       // Lunes
+  {"Patio 1º-3º":["Mª José Soto","Eli"], "Patio 4º-6º":["Paloma","Lorena"], "Patio Infantil":["Celia","Loli","Maribel"]},   // Martes
+  {"Patio 1º-3º":["Susi","José"], "Patio 4º-6º":["Guada","Carmen"], "Patio Infantil":["Celia","Maribel"]},                    // Miércoles
+  {"Patio 1º-3º":["Mª José Soto","Eli"], "Patio 4º-6º":["Paloma","Lorena"], "Patio Infantil":["Celia","Loli","Maribel"]},   // Jueves
+  {"Patio 1º-3º":["Guada","Carmen"], "Patio 4º-6º":["Paula","Inma"], "Patio Infantil":["Celia","Maribel"]},                   // Viernes
 ];
 
 // Horario de cada curso: por día (L a V), un valor por tramo (el recreo se deja vacío).
@@ -163,6 +164,9 @@ const EQUIPO_DIRECTIVO = ["Antonio Dorador","Eli","Celia"];
 // Especialistas que entran puntualmente a las clases a ayudar: en la pestaña "Por curso" salen en rojo y debajo, como "PT: Inma" o "AL: Ana".
 // En su horario escribe el curso, por ejemplo "PT 3º". No cuentan como apoyo ni como libres; en el resumen de horas se cuentan por curso.
 const ESPECIALISTAS = {"Inma":"PT", "Ana":"AL"};
+
+// Maestros que no cuentan como libres en la pestaña "Libre" (por ejemplo, la orientadora).
+const NO_LIBRES = ["Elena"];
 
 // Maestros que, cuando están en Infantil, cuentan como libres (pestaña "Libre"): aparecen en el grupo "Infantil".
 const LIBRE_EN_INFANTIL = ["Mª José Soto"];
@@ -289,7 +293,7 @@ function claveEspecialista(c){
   return extra || mc[0];
 }
 function resumenMaestro(m){
-  if (m.vacio) return "";
+  if (m.vacio && !m.noEsta) return "";
   const acc = {}, suma = (k, v) => acc[k] = (acc[k] || 0) + v;
   DIAS.forEach((_, d) => TRAMOS.forEach((t, ti) => {
     const dur = minutos(ti), v = donde(m, d, ti);
@@ -362,16 +366,19 @@ function pintarRejilla(sel){
   $("rejilla").innerHTML = h + "</table>";
   $("rejilla").querySelectorAll(".slot").forEach(b => b.onclick = () => verTramo(+b.dataset.d, +b.dataset.t));
 }
+// Sala de profesores: todos los que vienen ese día y no tienen patio.
+const salaProfesores = d => {
+  const en = Object.values(PATIO[d]).flat();
+  return MAESTROS.filter(m => !(m.noEsta && m.noEsta.includes(d)) && !en.includes(m.nombre)).map(m => m.nombre);
+};
 function recreoHTML(d){
   let h = "";
   ORDEN_PATIOS.forEach(p => {
     const n = PATIO[d][p] || [];
     if (n.length) h += `<div class="grupo"><h3>${p}</h3><p>${esc(n.join(", "))}</p></div>`;
   });
-  const en = Object.values(PATIO[d]).flat();
-  const libres = MAESTROS.filter(m => !(m.noEsta && m.noEsta.includes(d)) && !en.includes(m.nombre)).map(m => m.nombre);
   const ausentes = MAESTROS.filter(m => m.noEsta && m.noEsta.includes(d)).map(m => m.nombre);
-  h += `<p class="nota">Sin patio: ${esc(libres.join(", "))}</p>`;
+  h += `<p class="nota">Sala de profesores: ${esc(salaProfesores(d).join(", "))}</p>`;
   if (ausentes.length) h += `<p class="nota aus">No está: ${esc(ausentes.join(", "))}</p>`;
   return h;
 }
@@ -451,13 +458,14 @@ function verCurso(c){
 function pintarPatios(){
   const hoy = new Date().getDay() - 1, rec = TRAMOS.find(t => t.recreo);
   const patios = ORDEN_PATIOS.filter(p => PATIO.some(d => d[p] && d[p].length));
-  let h = `<p class="hint">Quién vigila el recreo${rec ? " (" + rec.hora + ")" : ""}, agrupado por patio. El día de hoy va subrayado.</p><div class="wrap"><table><tr><th></th>${DIAS.map((d,i) => `<th class="${i===hoy?"hoy":""}">${d}</th>`).join("")}</tr>`;
+  let h = `<p class="hint">Quién vigila el recreo${rec ? " (" + rec.hora + ")" : ""}, agrupado por patio. El día de hoy va subrayado. Debajo, quién está en la sala de profesores.</p><div class="wrap"><table><tr><th></th>${DIAS.map((d,i) => `<th class="${i===hoy?"hoy":""}">${d}</th>`).join("")}</tr>`;
   patios.forEach(p => {
     h += `<tr><th class="h">${p}</th>` + DIAS.map((_,di) => {
       const n = PATIO[di][p] || [];
       return `<td class="${n.length?"":"libre"}">${n.length ? n.map(x => esc(x)).join("<br>") : "—"}</td>`;
     }).join("") + "</tr>";
   });
+  h += `<tr><th class="h">Sala de profesores</th>` + DIAS.map((_,di) => `<td>${salaProfesores(di).map(x => esc(x)).join("<br>")}</td>`).join("") + "</tr>";
   $("tablaPatios").innerHTML = h + "</table></div>";
 }
 
@@ -508,7 +516,7 @@ function pintarAhora(){
 const GRUPOS_LIBRE = ["Apoyo", "Infantil", "Equipo directivo", "Coordinaciones y otras tareas"];
 // Devuelve null si el maestro no está libre (da clase a un curso, no está o no hay datos); si está libre, su grupo y el detalle.
 function libreDe(m, d, t){
-  if (m.vacio || ESPECIALISTAS[m.nombre] || (m.noEsta && m.noEsta.includes(d))) return null;   // PT y AL no cuentan como libres
+  if (m.vacio || ESPECIALISTAS[m.nombre] || NO_LIBRES.includes(m.nombre) || (m.noEsta && m.noEsta.includes(d))) return null;   // PT y AL no cuentan como libres
   const v = m.horario[d][t] || "";
   if (LIBRE_EN_INFANTIL.includes(m.nombre) && /Inf\./.test(v)) return {grupo: "Infantil", detalle: v};
   if (esApoyo(m, v)) return {grupo: "Apoyo", detalle: v};
