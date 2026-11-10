@@ -77,6 +77,12 @@ th.hoy{box-shadow:inset 0 -3px 0 #e0a100}
 .estado summary{cursor:pointer;font-weight:600}
 .estado .row small{display:block;color:var(--muted);font-size:.8rem}
 .estado .falta-tag{color:var(--aus);font-weight:600;white-space:nowrap}
+.mi .names{margin:8px 0}
+.mi .row span:first-child{color:var(--muted);white-space:nowrap;margin-right:10px}
+.row.actual{background:var(--accent-soft);border-radius:6px;padding-left:8px;padding-right:8px;font-weight:600}
+.row.actual span:first-child{color:var(--ink)}
+.mi .linea{margin:4px 0}
+.aviso-tipo{display:inline-block;font-size:.72rem;font-weight:600;color:var(--aus);background:var(--aus-bg);border-radius:6px;padding:1px 6px;margin-bottom:2px}
 .baja-fila{margin-top:12px}
 .baja-fila h3{margin:0 0 4px;font-size:1rem}
 .baja-fila .prop{margin:0 0 6px}
@@ -249,11 +255,12 @@ const PENDIENTES = {
   </nav>
 </header>
 <main>
-  <section id="t0" role="tabpanel"><div id="ahora"></div></section>
+  <section id="t0" role="tabpanel"><div id="miDia"></div><div id="ahora"></div></section>
   <section id="t1" role="tabpanel" hidden>
     <div class="names" id="names"></div>
     <div id="horarioMaestro"><p class="hint">Pulsa un nombre para ver su horario completo.</p></div>
     <div id="estadoDatos"></div>
+    <div id="revisionDatos"></div>
   </section>
   <section id="t2" role="tabpanel" hidden>
     <p class="hint">Pulsa un tramo para ver dónde está cada maestro. El marco amarillo es el tramo actual.</p>
@@ -719,6 +726,132 @@ function pintarEstado(){
     (ok.length ? `<p class="nota">Completos: ${esc(ok.join(", "))}.</p>` : "") + `</details>`;
 }
 
+// ---- Mi día ----
+const GUARDAR_NOMBRE = "ceipvidal-mi-nombre";
+let miNombre = "", miDia = null, editandoMi = false;
+try { miNombre = localStorage.getItem(GUARDAR_NOMBRE) || ""; } catch (e) {}
+function guardarMi(n){ miNombre = n; try { n ? localStorage.setItem(GUARDAR_NOMBRE, n) : localStorage.removeItem(GUARDAR_NOMBRE); } catch (e) {} }
+const diaHoy = () => { const w = new Date().getDay() - 1; return w >= 0 && w <= 4 ? w : 0; };
+function pintarMiDia(){
+  const cont = $("miDia");
+  if (miNombre && !MAESTROS.some(m => m.nombre === miNombre)) guardarMi("");
+  if (!miNombre || editandoMi){
+    cont.innerHTML = `<div class="panel mi"><h2>Mi día</h2><p class="hint">Elige tu nombre una vez y la app lo recordará en este móvil.</p><label class="falta"><select><option value="">— elige tu nombre —</option>` +
+      MAESTROS.map(m => `<option value="${esc(m.nombre)}"${m.nombre === miNombre ? " selected" : ""}>${esc(m.nombre)}</option>`).join("") + `</select></label></div>`;
+    const sel = cont.querySelectorAll("select")[0];
+    if (sel) sel.onchange = () => { if (sel.value){ guardarMi(sel.value); editandoMi = false; pintarMiDia(); } };
+    return;
+  }
+  const m = MAESTROS.find(x => x.nombre === miNombre), w = new Date().getDay(), finde = w === 0 || w === 6;
+  const d = miDia === null ? diaHoy() : miDia, esHoy = d === diaHoy() && !finde;
+  const act = esHoy ? tramoActual() : null;
+  const filas = [];
+  TRAMOS.forEach((t, ti) => {
+    const v = donde(m, d, ti), etq = t.recreo && v === "-" ? "Recreo" : v, ant = filas[filas.length - 1];
+    if (ant && ti === UNIR_TRAMOS[1] && ant.tramos.includes(UNIR_TRAMOS[0]) && ant.etq === etq){ ant.tramos.push(ti); return; }
+    filas.push({tramos: [ti], etq, ap: !t.recreo && esApoyo(m, m.horario[d][ti]), cl: clase(v)});
+  });
+  const horaDe = f => TRAMOS[f.tramos[0]].hora.split(" – ")[0] + " – " + TRAMOS[f.tramos[f.tramos.length - 1]].hora.split(" – ")[1];
+  const noViene = m.noEsta && m.noEsta.includes(d);
+  let h = `<div class="panel mi"><h2>Mi día · ${esc(m.nombre)}</h2><div class="names">` +
+    DIAS.map((n, i) => `<button data-d="${i}" aria-pressed="${i === d}">${n.slice(0, 3)}</button>`).join("") + `</div>`;
+  if (finde && miDia === null) h += `<p class="hint">Hoy no hay clase. Se muestra el lunes.</p>`;
+  const i = act ? filas.findIndex(f => f.tramos.includes(act[1])) : -1;
+  if (i >= 0 && !noViene){
+    h += `<p class="linea"><strong>Ahora:</strong> ${esc(filas[i].etq)}</p>`;
+    if (filas[i + 1]) h += `<p class="linea"><strong>Después (${horaDe(filas[i + 1]).split(" – ")[0]}):</strong> ${esc(filas[i + 1].etq)}</p>`;
+  }
+  if (noViene) h += `<p class="hint">Ese día no vienes al centro (NO ESTÁ).</p>`;
+  else h += filas.map((f, k) => `<div class="row ${f.cl}${f.ap ? " apoyo" : ""}${k === i ? " actual" : ""}"><span>${horaDe(f)}</span><span>${corto(f.etq)}</span></div>`).join("");
+  h += `<button class="btn" id="cambiarMi">Cambiar de nombre</button></div>`;
+  cont.innerHTML = h;
+  cont.querySelectorAll(".names button").forEach(b => b.onclick = () => { miDia = +b.dataset.d; pintarMiDia(); });
+  const cb = cont.querySelectorAll("#cambiarMi")[0];
+  if (cb) cb.onclick = () => { editandoMi = true; pintarMiDia(); };
+}
+
+// ---- Revisión automática de los horarios ----
+const normS = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\./g, "").replace(/\s+/g, " ").trim();
+const ALIAS = [[/^(mates|matematicas)$/, "matematicas"], [/^c (del )?medio$/, "c del medio"], [/^(religion|atedu|religion ?\/ ?atedu)$/, "religion atedu"]];
+const canon = s => { const n = normS(s); for (const [re, v] of ALIAS) if (re.test(n)) return v; return n; };
+// Partes de una casilla de maestro que se refieren a un curso: [{curso, materia}]
+function partesCelda(v){
+  return v.split(" / ").map(p => {
+    const mc = p.match(/Inf\. \d años|\dº/);
+    if (!mc) return null;
+    return {curso: mc[0], materia: p.replace(/^\s*(ref\.?)\s+/i, "").replace(mc[0], "").replace(/\s+/g, " ").trim()};
+  }).filter(Boolean);
+}
+function revisar(){
+  const av = [], add = (grupo, sujeto, d, ti, msg) => av.push({grupo, sujeto, d, ti, msg});
+  const hora = ti => TRAMOS[ti].hora;
+  // 1) Lo que dice cada maestro frente al horario del curso
+  MAESTROS.forEach(m => {
+    if (m.vacio) return;
+    DIAS.forEach((_, d) => TRAMOS.forEach((t, ti) => {
+      if (t.recreo) return;
+      const v = m.horario[d][ti] || "";
+      if (!v) return;
+      if (m.noEsta && m.noEsta.includes(d)){ add("Datos en día sin venir", m.nombre, d, ti, `tiene "${v}" pero está marcado como NO ESTÁ ese día.`); return; }
+      if (ESPECIALISTAS[m.nombre]) return;                       // PT y AL entran a cualquier clase: no se compara la materia
+      partesCelda(v).forEach(p => {
+        if (!CURSOS[p.curso]) return;
+        const cs = CURSOS[p.curso][d][ti];
+        if (!cs){ add("Curso sin horario en ese tramo", m.nombre, d, ti, `su horario dice "${v}", pero ${nombreCurso(p.curso)} no tiene nada anotado en ese tramo.`); return; }
+        if (!p.materia || cs === "Sin especificar") return;
+        if (canon(p.materia) !== canon(cs)) add("Maestro y curso no cuadran", m.nombre, d, ti, `su horario dice "${v}", pero el horario de ${nombreCurso(p.curso)} tiene "${cs}".`);
+      });
+    }));
+  });
+  // 2) Lo que dice cada curso frente a los maestros
+  Object.keys(CURSOS).forEach(c => DIAS.forEach((_, d) => TRAMOS.forEach((t, ti) => {
+    if (t.recreo) return;
+    const cs = CURSOS[c][d][ti];
+    if (!cs) return;
+    const p = profesDe(c, d, ti);
+    if (!p.clase.length) add("Clase sin maestro", nombreCurso(c), d, ti, `tiene "${cs}" pero ningún maestro la da.`);
+    else if (p.clase.length > 1 && canon(cs) !== "religion atedu") add("Dos maestros en la misma clase", nombreCurso(c), d, ti, `"${cs}" la dan ${p.clase.join(" y ")} a la vez (sin contar refuerzos).`);
+    if (canon(cs) === "religion atedu" && !MAESTROS.some(m => (m.horario[d][ti] || "").startsWith("Religión") && (m.horario[d][ti] || "").includes(c)))
+      add("Religión sin maestra", nombreCurso(c), d, ti, `tiene "${cs}" pero nadie tiene la Religión de este curso.`);
+  })));
+  // 3) Biblioteca: sesiones sin nadie
+  BIBLIOTECA.franjas.forEach(f => DIAS.forEach((_, d) => {
+    if (!(f.dias[d] || []).length) return;
+    if (!MAESTROS.some(m => !(m.noEsta && m.noEsta.includes(d)) && f.tramos.some(ti => (m.horario[d][ti] || "").includes("Biblioteca"))))
+      add("Biblioteca sin maestro", "Biblioteca", d, f.tramos[0], `hay sesiones de ${f.hora}, pero nadie tiene "Biblioteca" en su horario.`);
+  }));
+  // 4) Nombres de las listas de configuración y patios
+  const conocidos = new Set(MAESTROS.map(m => m.nombre)), config = [];
+  const lista = (n, arr) => arr.forEach(x => { if (!conocidos.has(x)) config.push(`"${x}" en ${n}`); });
+  lista("APOYO", APOYO); lista("EQUIPO_DIRECTIVO", EQUIPO_DIRECTIVO); lista("LIBRE_EN_INFANTIL", LIBRE_EN_INFANTIL);
+  lista("NO_LIBRES", NO_LIBRES); lista("EF_PROFES", EF_PROFES); lista("ESPECIALISTAS", Object.keys(ESPECIALISTAS));
+  PATIO.forEach((dia, d) => {
+    const vistos = {};
+    Object.keys(dia).forEach(p => dia[p].forEach(x => {
+      if (!conocidos.has(x)) config.push(`"${x}" en el patio del ${DIAS[d].toLowerCase()}`);
+      else { const mm = MAESTROS.find(q => q.nombre === x); if (mm.noEsta && mm.noEsta.includes(d)) config.push(`${x} tiene patio el ${DIAS[d].toLowerCase()} pero está marcado como NO ESTÁ`); }
+      if (vistos[x]) config.push(`${x} aparece en dos patios el ${DIAS[d].toLowerCase()}`);
+      vistos[x] = 1;
+    }));
+  });
+  // unir 13:00-13:30 y 13:30-14:00 cuando el aviso es el mismo
+  const un = [];
+  av.forEach(a => {
+    const ant = un[un.length - 1];
+    if (ant && ant.grupo === a.grupo && ant.sujeto === a.sujeto && ant.d === a.d && ant.msg === a.msg && a.ti === UNIR_TRAMOS[1] && ant.ti === UNIR_TRAMOS[0]) ant.fin = a.ti;
+    else un.push(Object.assign({fin: a.ti}, a));
+  });
+  return {avisos: un.map(a => ({grupo: a.grupo, texto: `${a.sujeto} · ${DIAS[a.d]} ${hora(a.ti).split(" – ")[0]} – ${hora(a.fin).split(" – ")[1]}: ${a.msg}`})),
+          config: config.map(c => ({grupo: "Nombre desconocido", texto: c}))};
+}
+function pintarRevision(){
+  const r = revisar(), todo = r.avisos.concat(r.config);
+  $("revisionDatos").innerHTML = `<details class="estado"><summary>Revisión de horarios (${todo.length ? todo.length + " aviso" + (todo.length === 1 ? "" : "s") : "sin avisos"})</summary>` +
+    (todo.length ? todo.map(a => `<div class="row"><span><span class="aviso-tipo">${esc(a.grupo)}</span><small>${esc(a.texto)}</small></span></div>`).join("")
+      : `<p class="nota">Todo cuadra. Se comprueba que cada maestro y su curso digan lo mismo, que cada clase tenga maestro, que la Religión esté cubierta, que la biblioteca tenga a alguien y que los nombres de las listas existan.</p>`) +
+    `</details>`;
+}
+
 // ---- Pestaña 7: Biblioteca ----
 function pintarBiblioteca(){
   const quien = (d, tramos) => MAESTROS.filter(m => !(m.noEsta && m.noEsta.includes(d)) && tramos.some(t => (m.horario[d][t] || "").includes("Biblioteca"))).map(m => m.nombre);
@@ -748,8 +881,10 @@ pintarLibreRejilla(null);
 pintarModoLibre();
 pintarBaja();
 pintarEstado();
+pintarRevision();
+pintarMiDia();
 pintarAhora();
-setInterval(() => { if (!$("t0").hidden) pintarAhora(); }, 60000);   // la pestaña "Ahora" se actualiza sola
+setInterval(() => { if (!$("t0").hidden){ pintarAhora(); if (miNombre && !editandoMi) pintarMiDia(); } }, 60000);   // la pestaña "Ahora" se actualiza sola
 
 // App instalable y disponible sin conexión (solo funciona al abrirla desde la web, no como archivo suelto)
 if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
