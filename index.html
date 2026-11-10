@@ -56,6 +56,8 @@ td.apoyo,.ap{color:var(--aus);font-weight:600}
 .resumen table{min-width:0;max-width:440px}
 .resumen td{text-align:left}
 .resumen td:last-child{text-align:right;white-space:nowrap}
+.falta{display:block;margin:6px 0 10px;font-size:.9rem;color:var(--muted)}
+.falta select{font:inherit;margin-top:6px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);max-width:100%;width:100%}
 .grupo h3{margin:14px 0 2px;font-size:1rem;color:var(--accent)}
 .grupo p{margin:0}
 .nota.aus{color:var(--aus)}
@@ -69,6 +71,32 @@ th.hoy{box-shadow:inset 0 -3px 0 #e0a100}
 #t3 td small.ref{color:var(--aus);font-weight:600}
 .hint{color:var(--muted)}
 .nota{font-size:.85rem;color:var(--muted);margin-top:8px}
+
+.dc{display:none}
+.estado{margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.estado summary{cursor:pointer;font-weight:600}
+.estado .row small{display:block;color:var(--muted);font-size:.8rem}
+.estado .falta-tag{color:var(--aus);font-weight:600;white-space:nowrap}
+.baja-fila{margin-top:12px}
+.baja-fila h3{margin:0 0 4px;font-size:1rem}
+.baja-fila .prop{margin:0 0 6px}
+.baja-fila .prop strong{color:var(--accent)}
+.baja-fila ol{margin:0;padding-left:20px;color:var(--muted);font-size:.92rem}
+.btn{font:inherit;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer;margin-top:14px}
+@media (max-width:600px){
+  .dl{display:none}.dc{display:inline}
+  table{min-width:0}
+  th,td{padding:5px 2px;font-size:.72rem;hyphens:auto;overflow-wrap:anywhere}
+  th.h{font-size:.7rem;padding:5px 3px;white-space:nowrap}
+  #t4 table{min-width:0}
+  #t4 th.h{white-space:normal;font-size:.72rem}
+  #t3 td,#t4 td,#t7 td{font-size:.68rem}
+  #t3 td small,#t7 small,.chip{font-size:.62rem}
+  #t3 td small.ref{letter-spacing:-.01em}
+  .chip{padding:2px 4px}
+  .slot{padding:8px 1px;font-size:.72rem}
+  .wrap{overflow-x:auto}
+}
 </style>
 </head>
 <body>
@@ -194,6 +222,16 @@ const BIBLIOTECA = {
       "Biblioteca DUA: taller de radio, proyectos, efemérides, club de lectura, talleres de lectura, cuentacuentos, debates, noticias, entre otras."]},
   ],
 };
+
+// Notas de lo que falta por recoger. Salen en "Datos pendientes" (pestaña Maestros). Borra la nota cuando esté resuelto.
+const PENDIENTES = {
+  "Antonio Dorador": "Aclarar el viernes de 9 a 10 y los tramos vacíos: viernes de 11 a 11:45 y miércoles de 12:15 a 13:00.",
+  "Celia": "Falta su horario completo.",
+  "Loli": "Falta el resto de su horario.",
+  "Ana": "Falta su horario de los lunes (cuándo entra a cada curso).",
+  "Inf. 4 años": "Solo constan Inglés, Religión y algunos tramos de Mª José Soto. Falta quién da el Atedu.",
+  "Inf. 5 años": "Solo constan Inglés, Psicomotricidad y Religión. Falta quién da el Atedu.",
+};
 </script>
 <!-- ======================================================= -->
 
@@ -215,6 +253,7 @@ const BIBLIOTECA = {
   <section id="t1" role="tabpanel" hidden>
     <div class="names" id="names"></div>
     <div id="horarioMaestro"><p class="hint">Pulsa un nombre para ver su horario completo.</p></div>
+    <div id="estadoDatos"></div>
   </section>
   <section id="t2" role="tabpanel" hidden>
     <p class="hint">Pulsa un tramo para ver dónde está cada maestro. El marco amarillo es el tramo actual.</p>
@@ -229,9 +268,13 @@ const BIBLIOTECA = {
   <section id="t5" role="tabpanel" hidden><div id="tablaEF"></div></section>
   <section id="t7" role="tabpanel" hidden><div id="tablaBiblio"></div></section>
   <section id="t6" role="tabpanel" hidden>
-    <p class="hint">Pulsa un tramo para ver quién está libre: apoyo, equipo directivo (si no da clase), coordinaciones y otras tareas, y Mª José Soto cuando está en Infantil. Quien tiene el tramo vacío ("Sin datos") no se cuenta, porque todavía no se sabe qué tiene. El marco amarillo es el tramo actual.</p>
-    <div class="wrap" id="rejillaLibre"></div>
-    <div id="detalleLibre"></div>
+    <div class="names" id="modoLibre"></div>
+    <div id="libreBaja"></div>
+    <div id="libreTramo" hidden>
+      <p class="hint">Pulsa un tramo para ver quién puede cubrir una baja, en el orden en que se cubre (numerado). Si eliges quién falta, el apoyo de su clase sale el primero. Quien tiene el tramo vacío ("Sin datos") no se cuenta. El marco amarillo es el tramo actual.</p>
+      <div class="wrap" id="rejillaLibre"></div>
+      <div id="detalleLibre"></div>
+    </div>
   </section>
 </main>
 
@@ -241,6 +284,11 @@ MAESTROS.forEach(m => m.vacio = m.horario.flat().every(x => !x));
 MAESTROS.sort((a, b) => a.nombre.localeCompare(b.nombre, "es", {sensitivity:"base"}));
 
 const $ = id => document.getElementById(id);
+const hl = h => h.replace(" – ", "<br>");   // hora en dos líneas: ocupa menos ancho
+const cabDia = (d, cls) => `<th${cls ? ` class="${cls}"` : ""}><span class="dl">${d}</span><span class="dc">${d.slice(0, 3)}</span></th>`;
+// En el móvil, las palabras muy largas se acortan para que la semana quepa entera.
+const ABREV = [["Matemáticas", "Mates"], ["Psicomotricidad", "Psicom."]];
+const corto = t => { let c = t; ABREV.forEach(([a, b]) => { c = c.replace(a, b); }); return c === t ? esc(t) : `<span class="dl">${esc(t)}</span><span class="dc">${esc(c)}</span>`; };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const patio = (m, d) => Object.keys(PATIO[d]).find(k => PATIO[d][k].includes(m.nombre));
 const donde = (m, d, t) => m.noEsta && m.noEsta.includes(d) ? "NO ESTÁ" : TRAMOS[t].recreo ? (patio(m, d) || "-") : m.vacio ? "Sin datos" : (m.horario[d][t] || "Sin datos");
@@ -326,15 +374,15 @@ function pintarNombres(sel){
 function verMaestro(i){
   const m = MAESTROS[i];
   pintarNombres(i);
-  let h = `<h2>${esc(m.nombre)}</h2>${m.vacio?'<p class="hint">Todavía no tenemos cargado su horario de clases.</p>':""}<div class="wrap"><table><tr><th></th>${DIAS.map(d=>`<th>${d}</th>`).join("")}</tr>`;
+  let h = `<h2>${esc(m.nombre)}</h2>${m.vacio?'<p class="hint">Todavía no tenemos cargado su horario de clases.</p>':""}<div class="wrap"><table><tr><th></th>${DIAS.map(d => cabDia(d)).join("")}</tr>`;
   TRAMOS.forEach((t,ti) => {
-    h += `<tr><th class="h ${t.recreo?"recreo":""}">${t.hora}</th>`;
+    h += `<tr><th class="h ${t.recreo?"recreo":""}">${hl(t.hora)}</th>`;
     DIAS.forEach((_,di) => {
       const rs = unir(ti, di, (d,x) => donde(m,d,x));
       if (!rs) return;
       const v = donde(m,di,ti);
       const ap = !t.recreo && esApoyo(m, m.horario[di][ti]) ? " apoyo" : "";
-      h += `<td${rowspan(rs)} class="${(t.recreo?"recreo ":"")+clase(v)+ap}">${esc(v)}</td>`;
+      h += `<td${rowspan(rs)} class="${(t.recreo?"recreo ":"")+clase(v)+ap}">${corto(v)}</td>`;
     });
     h += "</tr>";
   });
@@ -354,9 +402,9 @@ function tramoActual(){
 }
 function pintarRejilla(sel){
   const ahora = tramoActual();
-  let h = `<table><tr><th></th>${DIAS.map(d=>`<th>${d}</th>`).join("")}</tr>`;
+  let h = `<table><tr><th></th>${DIAS.map(d => cabDia(d)).join("")}</tr>`;
   TRAMOS.forEach((t,ti) => {
-    h += `<tr><th class="h ${t.recreo?"recreo":""}">${t.hora}</th>`;
+    h += `<tr><th class="h ${t.recreo?"recreo":""}">${hl(t.hora)}</th>`;
     DIAS.forEach((_,di) => {
       const cls = [t.recreo?"recreo":"", sel&&sel[0]===di&&sel[1]===ti?"sel":"", ahora&&ahora[0]===di&&ahora[1]===ti?"ahora":""].join(" ");
       h += `<td class="${cls}"><button class="slot" data-d="${di}" data-t="${ti}" aria-label="${DIAS[di]} ${t.hora}">Ver</button></td>`;
@@ -439,15 +487,15 @@ function pintarCursos(sel){
 }
 function verCurso(c){
   pintarCursos(c);
-  let h = `<h2>${nombreCurso(c)}</h2>${incompleto(c) ? '<p class="hint">Horario incompleto: solo constan los tramos que salen en los horarios de los maestros.</p>' : ""}<div class="wrap"><table><tr><th></th>${DIAS.map(d=>`<th>${d}</th>`).join("")}</tr>`;
+  let h = `<h2>${nombreCurso(c)}</h2>${incompleto(c) ? '<p class="hint">Horario incompleto: solo constan los tramos que salen en los horarios de los maestros.</p>' : ""}<div class="wrap"><table><tr><th></th>${DIAS.map(d => cabDia(d)).join("")}</tr>`;
   TRAMOS.forEach((t,ti) => {
-    h += `<tr><th class="h ${t.recreo?"recreo":""}">${t.hora}</th>`;
+    h += `<tr><th class="h ${t.recreo?"recreo":""}">${hl(t.hora)}</th>`;
     DIAS.forEach((_,di) => {
       if (t.recreo){ h += `<td class="recreo">Recreo</td>`; return; }
       const rs = unir(ti, di, (d,x) => CURSOS[c][d][x] + "|" + JSON.stringify(profesDe(c,d,x)));
       if (!rs) return;
       const asig = CURSOS[c][di][ti];
-      h += asig ? `<td${rowspan(rs)}>${esc(asig)}${profesHTML(profesDe(c,di,ti))}</td>` : `<td${rowspan(rs)} class="libre">—</td>`;
+      h += asig ? `<td${rowspan(rs)}>${corto(asig)}${profesHTML(profesDe(c,di,ti))}</td>` : `<td${rowspan(rs)} class="libre">—</td>`;
     });
     h += "</tr>";
   });
@@ -458,7 +506,7 @@ function verCurso(c){
 function pintarPatios(){
   const hoy = new Date().getDay() - 1, rec = TRAMOS.find(t => t.recreo);
   const patios = ORDEN_PATIOS.filter(p => PATIO.some(d => d[p] && d[p].length));
-  let h = `<p class="hint">Quién vigila el recreo${rec ? " (" + rec.hora + ")" : ""}, agrupado por patio. El día de hoy va subrayado. Debajo, quién está en la sala de profesores.</p><div class="wrap"><table><tr><th></th>${DIAS.map((d,i) => `<th class="${i===hoy?"hoy":""}">${d}</th>`).join("")}</tr>`;
+  let h = `<p class="hint">Quién vigila el recreo${rec ? " (" + rec.hora + ")" : ""}, agrupado por patio. El día de hoy va subrayado. Debajo, quién está en la sala de profesores.</p><div class="wrap"><table><tr><th></th>${DIAS.map((d,i) => cabDia(d, i===hoy?"hoy":"")).join("")}</tr>`;
   patios.forEach(p => {
     h += `<tr><th class="h">${p}</th>` + DIAS.map((_,di) => {
       const n = PATIO[di][p] || [];
@@ -473,9 +521,9 @@ function pintarPatios(){
 function pintarEF(){
   const profes = EF_PROFES.map(n => MAESTROS.find(m => m.nombre === n)).filter(Boolean);
   const leyenda = profes.map((m,i) => `<span class="chip c${i}">${esc(m.nombre)}</span>`).join("");
-  let h = `<p class="hint">Tramos de Educación Física de cada maestro, con el curso.</p><div class="leyenda">${leyenda}</div><div class="wrap"><table><tr><th></th>${DIAS.map(d => `<th>${d}</th>`).join("")}</tr>`;
+  let h = `<p class="hint">Tramos de Educación Física de cada maestro, con el curso.</p><div class="leyenda">${leyenda}</div><div class="wrap"><table><tr><th></th>${DIAS.map(d => cabDia(d)).join("")}</tr>`;
   TRAMOS.forEach((t,ti) => {
-    h += `<tr><th class="h ${t.recreo?"recreo":""}">${t.hora}</th>`;
+    h += `<tr><th class="h ${t.recreo?"recreo":""}">${hl(t.hora)}</th>`;
     DIAS.forEach((_,di) => {
       if (t.recreo){ h += `<td class="recreo">Recreo</td>`; return; }
       const chipsDe = (d,x) => profes.map((m,i) => {
@@ -512,28 +560,44 @@ function pintarAhora(){
   $("ahora").innerHTML = `<div class="panel">${cab}${contenidoTramo(d, t)}</div>`;
 }
 
-// ---- Pestaña 6: Libre ----
-const GRUPOS_LIBRE = ["Apoyo", "Infantil", "Equipo directivo", "Coordinaciones y otras tareas"];
-// Devuelve null si el maestro no está libre (da clase a un curso, no está o no hay datos); si está libre, su grupo y el detalle.
-function libreDe(m, d, t){
-  if (m.vacio || ESPECIALISTAS[m.nombre] || NO_LIBRES.includes(m.nombre) || (m.noEsta && m.noEsta.includes(d))) return null;   // PT y AL no cuentan como libres
+// ---- Pestaña 6: Libre (orden para cubrir una baja) ----
+// Orden en que se cubre una baja: los grupos salen numerados en este orden.
+const ORDEN_COBERTURA = ["Apoyo de esa clase", "Apoyo en otras clases", "Apoyo general", "Infantil", "Coordinación", "Mayores de 55", "Equipo directivo", "Otras tareas"];
+const cursoDeCelda = v => (v.match(/Inf\. \d años|\dº/) || [null])[0];
+// Curso al que da clase el maestro en ese tramo (null si no da clase: apoyo, tarea, no está...).
+function cursoDe(m, d, t){
+  if (m.vacio || ESPECIALISTAS[m.nombre] || (m.noEsta && m.noEsta.includes(d))) return null;
   const v = m.horario[d][t] || "";
-  if (LIBRE_EN_INFANTIL.includes(m.nombre) && /Inf\./.test(v)) return {grupo: "Infantil", detalle: v};
-  if (esApoyo(m, v)) return {grupo: "Apoyo", detalle: v};
-  if (/\dº|Inf\./.test(v)) return null;                       // da clase a un curso
-  if (!v) return null;                                      // casilla vacía ("Sin datos"): tiene algo sin determinar, no cuenta como libre
-  return {grupo: EQUIPO_DIRECTIVO.includes(m.nombre) ? "Equipo directivo" : "Coordinaciones y otras tareas", detalle: v};
+  return esApoyo(m, v) ? null : cursoDeCelda(v);
 }
-function libresEn(d, t){
+// Devuelve null si el maestro no está disponible; si lo está, su grupo (ver ORDEN_COBERTURA) y el detalle.
+function libreDe(m, d, t){
+  if (m.vacio || ESPECIALISTAS[m.nombre] || NO_LIBRES.includes(m.nombre) || (m.noEsta && m.noEsta.includes(d))) return null;
+  const v = m.horario[d][t] || "";
+  if (!v) return null;                                       // casilla vacía ("Sin datos"): tiene algo sin determinar
+  if (LIBRE_EN_INFANTIL.includes(m.nombre) && /Inf\./.test(v)) return {grupo: "Infantil", detalle: v};
+  if (esApoyo(m, v)) return {grupo: APOYO.includes(m.nombre) ? "Apoyo general" : "Apoyo en otras clases", detalle: v};
+  if (cursoDeCelda(v)) return null;                          // da clase a un curso
+  if (/^coord/i.test(v)) return {grupo: "Coordinación", detalle: v};
+  if (/>>\s*55/.test(v)) return {grupo: "Mayores de 55", detalle: v};
+  return {grupo: EQUIPO_DIRECTIVO.includes(m.nombre) ? "Equipo directivo" : "Otras tareas", detalle: v};
+}
+// Disponibles en un tramo. Si se indica quién falta, el apoyo de la clase de esa persona pasa a "Apoyo de esa clase".
+function libresEn(d, t, falta){
   const r = [];
   MAESTROS.forEach(m => { const x = libreDe(m, d, t); if (x) r.push({nombre: m.nombre, grupo: x.grupo, detalle: x.detalle}); });
+  const f = falta && MAESTROS.find(m => m.nombre === falta), curso = f && cursoDe(f, d, t);
+  if (curso){
+    const apoyo = profesDe(curso, d, t).refuerzo;
+    r.forEach(x => { if (apoyo.includes(x.nombre) && /^Apoyo/.test(x.grupo)) x.grupo = "Apoyo de esa clase"; });
+  }
   return r;
 }
 function pintarLibreRejilla(sel){
   const ahora = tramoActual();
-  let h = `<table><tr><th></th>${DIAS.map(d => `<th>${d}</th>`).join("")}</tr>`;
+  let h = `<table><tr><th></th>${DIAS.map(d => cabDia(d)).join("")}</tr>`;
   TRAMOS.forEach((t, ti) => {
-    h += `<tr><th class="h ${t.recreo ? "recreo" : ""}">${t.hora}</th>`;
+    h += `<tr><th class="h ${t.recreo ? "recreo" : ""}">${hl(t.hora)}</th>`;
     DIAS.forEach((_, di) => {
       if (t.recreo){ h += `<td class="recreo">Recreo</td>`; return; }
       const n = libresEn(di, ti).length;
@@ -545,29 +609,122 @@ function pintarLibreRejilla(sel){
   $("rejillaLibre").innerHTML = h + "</table>";
   $("rejillaLibre").querySelectorAll(".slot").forEach(b => b.onclick = () => verLibres(+b.dataset.d, +b.dataset.t));
 }
-function verLibres(d, t){
+function verLibres(d, t, falta){
+  falta = falta || "";
   pintarLibreRejilla([d, t]);
-  const lista = libresEn(d, t);
+  const lista = libresEn(d, t, falta);
+  const f = falta && MAESTROS.find(m => m.nombre === falta), curso = f && cursoDe(f, d, t);
   let h = `<div class="panel"><h2>${DIAS[d]} · ${TRAMOS[t].hora}</h2>`;
-  GRUPOS_LIBRE.forEach(g => {
+  h += `<label class="falta">¿Quién falta? <select><option value="">— elegir —</option>` +
+    MAESTROS.filter(m => cursoDe(m, d, t)).map(m => `<option value="${esc(m.nombre)}"${m.nombre === falta ? " selected" : ""}>${esc(m.nombre)} · ${esc(m.horario[d][t])}</option>`).join("") + `</select></label>`;
+  if (curso) h += `<p class="hint">Cubrir a ${esc(falta)} (${esc(curso)}).${lista.some(x => x.grupo === "Apoyo de esa clase") ? "" : " Su clase no tiene apoyo en este tramo."}</p>`;
+  let n = 0;
+  ORDEN_COBERTURA.forEach(g => {
     const en = lista.filter(x => x.grupo === g);
     if (!en.length) return;
-    h += `<div class="grupo"><h3>${g}</h3>` +
-      en.map(x => `<div class="row ${g === "Apoyo" ? "apoyo" : ""}"><span>${esc(x.nombre)}</span><span>${esc(x.detalle)}</span></div>`).join("") + "</div>";
+    n++;
+    h += `<div class="grupo"><h3>${n}. ${g}</h3>` +
+      en.map(x => `<div class="row ${/^Apoyo/.test(g) ? "apoyo" : ""}"><span>${esc(x.nombre)}</span><span>${esc(x.detalle)}</span></div>`).join("") + "</div>";
   });
-  if (!lista.length) h += `<p class="hint">Nadie libre en este tramo.</p>`;
+  if (!lista.length) h += `<p class="hint">Nadie disponible en este tramo.</p>`;
   const sin = MAESTROS.filter(m => m.vacio).map(m => m.nombre);
   if (sin.length) h += `<p class="nota">Sin horario cargado (no se cuentan): ${esc(sin.join(", "))}.</p>`;
   $("detalleLibre").innerHTML = h + "</div>";
+  const sel = $("detalleLibre").querySelectorAll("select")[0];
+  if (sel) sel.onchange = () => verLibres(d, t, sel.value);
   $("detalleLibre").scrollIntoView({behavior: "smooth", block: "nearest"});
+}
+
+// ---- Libre: baja del día ----
+let modoLibre = "baja", bajaDia = null, bajaQuien = "";
+function pintarModoLibre(){
+  $("modoLibre").innerHTML = [["baja", "Baja del día"], ["tramo", "Por tramo"]].map(([k, n]) => `<button data-k="${k}" aria-pressed="${modoLibre === k}">${n}</button>`).join("");
+  $("modoLibre").querySelectorAll("button").forEach(b => b.onclick = () => { modoLibre = b.dataset.k; pintarModoLibre(); });
+  $("libreBaja").hidden = modoLibre !== "baja";
+  $("libreTramo").hidden = modoLibre !== "tramo";
+}
+function pintarBaja(){
+  if (bajaDia === null){ const w = new Date().getDay() - 1; bajaDia = w >= 0 && w <= 4 ? w : 0; }
+  const d = bajaDia;
+  const dan = MAESTROS.filter(m => TRAMOS.some((t, ti) => !t.recreo && cursoDe(m, d, ti)));
+  if (!dan.some(m => m.nombre === bajaQuien)) bajaQuien = "";
+  let h = `<p class="hint">Elige el día y quién falta: te digo, tramo a tramo, quién puede cubrirlo, en el orden de cobertura.</p>` +
+    `<div class="names" id="diasBaja">` + DIAS.map((n, i) => `<button data-d="${i}" aria-pressed="${i === d}">${n}</button>`).join("") + `</div>` +
+    `<label class="falta">¿Quién falta? <select><option value="">— elegir —</option>` +
+    dan.map(m => `<option value="${esc(m.nombre)}"${m.nombre === bajaQuien ? " selected" : ""}>${esc(m.nombre)}</option>`).join("") + `</select></label>`;
+  let texto = "";
+  if (bajaQuien){
+    const m = MAESTROS.find(x => x.nombre === bajaQuien), filas = [];
+    TRAMOS.forEach((t, ti) => {
+      const curso = t.recreo ? null : cursoDe(m, d, ti);
+      if (!curso) return;
+      const lista = libresEn(d, ti, bajaQuien), clave = m.horario[d][ti] + JSON.stringify(lista), ant = filas[filas.length - 1];
+      if (ant && ant.clave === clave && UNIR_TRAMOS.includes(ti) && ant.tramos.includes(UNIR_TRAMOS[0]) && ti === UNIR_TRAMOS[1]) ant.tramos.push(ti);   // 13:00-13:30 y 13:30-14:00 iguales: una sola fila
+      else filas.push({tramos: [ti], celda: m.horario[d][ti], curso, lista, clave});
+    });
+    const pat = patio(m, d);
+    h += `<h2>${esc(bajaQuien)} · ${DIAS[d]}</h2>`;
+    texto = `Baja de ${bajaQuien} (${DIAS[d]}):`;
+    filas.forEach(f => {
+      const horaTxt = TRAMOS[f.tramos[0]].hora.split(" – ")[0] + " – " + TRAMOS[f.tramos[f.tramos.length - 1]].hora.split(" – ")[1];
+      let n = 0, grupos = "";
+      const prop = [];
+      ORDEN_COBERTURA.forEach(g => {
+        const en = f.lista.filter(x => x.grupo === g).map(x => x.nombre);
+        if (!en.length) return;
+        n++; if (!prop.length) prop.push(...en);
+        grupos += `<li><strong>${g}:</strong> ${esc(en.join(", "))}</li>`;
+      });
+      h += `<div class="panel baja-fila"><h3>${horaTxt} · ${esc(f.celda)}</h3>` +
+        (prop.length ? `<p class="prop">Propuesta: <strong>${esc(prop.join(" o "))}</strong></p><ol>${grupos}</ol>` : `<p class="hint">Nadie disponible en este tramo.</p>`) + `</div>`;
+      texto += `\n${horaTxt} · ${f.celda}: ${prop.length ? prop.join(" o ") : "sin cobertura"}`;
+    });
+    if (!filas.length) h += `<p class="hint">Ese día no da clase a ningún curso.</p>`;
+    if (pat){
+      h += `<div class="panel baja-fila"><h3>Recreo · ${esc(pat)}</h3><p class="hint">Hay que cubrir su patio. Sala de profesores: ${esc(salaProfesores(d).join(", "))}.</p></div>`;
+      texto += `\nRecreo · ${pat}: por cubrir`;
+    }
+    h += `<button class="btn" id="copiarBaja">Copiar para enviar</button>`;
+  }
+  $("libreBaja").innerHTML = h;
+  $("libreBaja").querySelectorAll("#diasBaja button").forEach(b => b.onclick = () => { bajaDia = +b.dataset.d; pintarBaja(); });
+  const sel = $("libreBaja").querySelectorAll("select")[0];
+  if (sel) sel.onchange = () => { bajaQuien = sel.value; pintarBaja(); };
+  const cp = $("libreBaja").querySelectorAll("#copiarBaja")[0];
+  if (cp) cp.onclick = () => {
+    const ok = () => { cp.textContent = "Copiado ✓"; setTimeout(() => { cp.textContent = "Copiar para enviar"; }, 2000); };
+    try { navigator.clipboard.writeText(texto).then(ok, () => { cp.textContent = "No se pudo copiar"; }); } catch (e) { cp.textContent = "No se pudo copiar"; }
+  };
+}
+
+// ---- Maestros: datos pendientes ----
+function faltantes(m){
+  let min = 0;
+  DIAS.forEach((_, d) => { if (m.noEsta && m.noEsta.includes(d)) return; TRAMOS.forEach((t, ti) => { if (!t.recreo && !m.horario[d][ti]) min += minutos(ti); }); });
+  return min;
+}
+function faltantesCurso(c){
+  let min = 0;
+  DIAS.forEach((_, d) => TRAMOS.forEach((t, ti) => { if (!t.recreo && !CURSOS[c][d][ti]) min += minutos(ti); }));
+  return min;
+}
+function pintarEstado(){
+  const todos = [...MAESTROS.map(m => ({nombre: m.nombre, falta: faltantes(m), nota: PENDIENTES[m.nombre]})),
+                 ...Object.keys(CURSOS).map(c => ({nombre: nombreCurso(c), falta: faltantesCurso(c), nota: PENDIENTES[c]}))];
+  const pend = todos.filter(x => x.falta > 0 || x.nota).sort((a, b) => b.falta - a.falta);
+  const ok = todos.filter(x => !(x.falta > 0 || x.nota)).map(x => x.nombre);
+  $("estadoDatos").innerHTML = `<details class="estado"><summary>Datos pendientes (${pend.length})</summary>` +
+    pend.map(x => `<div class="row"><span>${esc(x.nombre)}${x.nota ? `<small>${esc(x.nota)}</small>` : ""}</span>` +
+      `<span class="falta-tag">${x.falta ? "Faltan " + fmt(x.falta) : ""}</span></div>`).join("") +
+    (ok.length ? `<p class="nota">Completos: ${esc(ok.join(", "))}.</p>` : "") + `</details>`;
 }
 
 // ---- Pestaña 7: Biblioteca ----
 function pintarBiblioteca(){
   const quien = (d, tramos) => MAESTROS.filter(m => !(m.noEsta && m.noEsta.includes(d)) && tramos.some(t => (m.horario[d][t] || "").includes("Biblioteca"))).map(m => m.nombre);
-  let h = `<p class="hint">Horario de la biblioteca escolar. Debajo de las sesiones, quién está en la biblioteca según su horario.</p><div class="wrap"><table><tr><th></th>${DIAS.map(d => `<th>${d}</th>`).join("")}</tr>`;
+  let h = `<p class="hint">Horario de la biblioteca escolar. Debajo de las sesiones, quién está en la biblioteca según su horario.</p><div class="wrap"><table><tr><th></th>${DIAS.map(d => cabDia(d)).join("")}</tr>`;
   BIBLIOTECA.franjas.forEach(f => {
-    h += `<tr><th class="h">${f.hora}</th>`;
+    h += `<tr><th class="h">${hl(f.hora)}</th>`;
     DIAS.forEach((_, di) => {
       const ses = f.dias[di] || [], en = quien(di, f.tramos);
       if (!ses.length && !en.length){ h += `<td class="libre">—</td>`; return; }
@@ -588,6 +745,9 @@ pintarPatios();
 pintarEF();
 pintarBiblioteca();
 pintarLibreRejilla(null);
+pintarModoLibre();
+pintarBaja();
+pintarEstado();
 pintarAhora();
 setInterval(() => { if (!$("t0").hidden) pintarAhora(); }, 60000);   // la pestaña "Ahora" se actualiza sola
 
