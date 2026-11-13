@@ -19,7 +19,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-ap
 header{padding:20px 16px 0;max-width:960px;margin:0 auto}
 h1{font-size:1.4rem;margin:0 0 12px}
 nav{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding-bottom:12px}
-@media (min-width:720px){nav{grid-template-columns:repeat(8,1fr)}}
+nav #tab7{grid-column:span 2}
+nav button.largo{grid-column:1 / -1}
+@media (min-width:720px){nav{grid-template-columns:repeat(9,1fr)}nav #tab7{grid-column:auto}nav button.largo{grid-column:span 2}}
 nav button{font:inherit;font-size:.85rem;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 2px;cursor:pointer;color:var(--muted);text-align:center}
 nav button[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
 main{max-width:960px;margin:0 auto;padding:16px}
@@ -56,6 +58,11 @@ td.apoyo,.ap{color:var(--aus);font-weight:600}
 .resumen table{min-width:0;max-width:440px}
 .resumen td{text-align:left}
 .resumen td:last-child{text-align:right;white-space:nowrap}
+#t6 td{vertical-align:top;text-align:left;padding:4px 3px}
+.cob{margin-bottom:6px}
+.cob b{display:block;font-size:.78rem;overflow-wrap:normal;hyphens:manual;word-break:normal}
+.cob small{display:block;color:var(--muted);font-size:.66rem;line-height:1.2}
+.cob small.ap{color:var(--aus);font-weight:600}
 .falta{display:block;margin:6px 0 10px;font-size:.9rem;color:var(--muted)}
 .falta select{font:inherit;margin-top:6px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);max-width:100%;width:100%}
 .grupo h3{margin:14px 0 2px;font-size:1rem;color:var(--accent)}
@@ -101,6 +108,9 @@ th.hoy{box-shadow:inset 0 -3px 0 #e0a100}
   #t3 td small.ref{letter-spacing:-.01em}
   .chip{padding:2px 4px}
   .slot{padding:8px 1px;font-size:.72rem}
+  #t6 td{padding:4px 2px}
+  .cob b{font-size:.68rem}
+  .cob small{font-size:.6rem}
   .wrap{overflow-x:auto}
 }
 </style>
@@ -192,7 +202,7 @@ const EF_PROFES = ["José","Eli"];
 // Si en un tramo no hay otro maestro con ese curso, se muestran como maestro de la clase.
 const APOYO = ["Guada"];
 
-// Equipo directivo: cuentan como libres (pestaña "Libre") cuando no dan clase a un curso y tienen algo anotado (Func. Direcc, coordinación...).
+// Equipo directivo (se usa en la revisión de nombres; el orden de sustitución está en COBERTURA).
 const EQUIPO_DIRECTIVO = ["Antonio Dorador","Eli","Celia"];
 
 // Especialistas que entran puntualmente a las clases a ayudar: en la pestaña "Por curso" salen en rojo y debajo, como "PT: Inma" o "AL: Ana".
@@ -235,7 +245,7 @@ const PENDIENTES = {
 };
 
 // Cuadrante de libres y apoyos: por día y tramo ("día,tramo": 0=L..4=V; tramo = posición en TRAMOS), las personas
-// EN EL ORDEN EN QUE SUSTITUYEN, con lo que tienen en ese tramo. Es lo que usa la pestaña "Libre".
+// EN EL ORDEN EN QUE SUSTITUYEN, con lo que tienen en ese tramo. Es lo que usa la pestaña LIBRE/SUSTITUCIONES.
 // Si cambia el cuadrante, se edita aquí; la "Revisión de horarios" avisa si no coincide con los horarios de cada maestro.
 const COBERTURA = {
   "0,0": [["Guada", "4º Lengua"], ["Susi", "Coord. Ciclo"], ["Maribel", "Coord. Ciclo"], ["Inma", "Coord. Eq. Orientación"], ["Antonio Dorador", "AP. Familias"], ["Eli", "Func. Direcc"]],
@@ -282,7 +292,7 @@ const COBERTURA = {
     <button role="tab" id="tab4" aria-selected="false" aria-controls="t4">Patios</button>
     <button role="tab" id="tab5" aria-selected="false" aria-controls="t5">Ed. Física</button>
     <button role="tab" id="tab7" aria-selected="false" aria-controls="t7">Biblioteca</button>
-    <button role="tab" id="tab6" aria-selected="false" aria-controls="t6">Libre</button>
+    <button role="tab" id="tab6" aria-selected="false" aria-controls="t6" class="largo">LIBRE/SUSTITUCIONES</button>
   </nav>
 </header>
 <main>
@@ -307,12 +317,11 @@ const COBERTURA = {
   <section id="t7" role="tabpanel" hidden><div id="tablaBiblio"></div></section>
   <section id="t6" role="tabpanel" hidden>
     <div class="names" id="modoLibre"></div>
-    <div id="libreBaja"></div>
-    <div id="libreTramo" hidden>
-      <p class="hint">Pulsa un tramo para ver quién sustituye, en el orden del cuadrante de libres y apoyos (numerado). Si eliges quién falta, el apoyo de su clase sale el primero. El marco amarillo es el tramo actual.</p>
+    <div id="libreTramo">
+      <p class="hint">Cuadrante de libres y apoyos: en cada tramo, quién sustituye y en qué orden (el 1 es el primero). En rojo, quien está de apoyo en una clase. El marco amarillo es el tramo actual.</p>
       <div class="wrap" id="rejillaLibre"></div>
-      <div id="detalleLibre"></div>
     </div>
+    <div id="libreBaja" hidden></div>
   </section>
 </main>
 
@@ -618,45 +627,30 @@ function libresEn(d, t, falta){
   const suyos = base.filter(x => cursoDeCelda(x.detalle) === curso).map(x => Object.assign({deEsaClase: true}, x));
   return suyos.concat(base.filter(x => cursoDeCelda(x.detalle) !== curso));
 }
-function pintarLibreRejilla(sel){
-  const ahora = tramoActual();
-  let h = `<table><tr><th></th>${DIAS.map(d => cabDia(d)).join("")}</tr>`;
+const nomCorto = n => ({"Antonio Dorador": "Dorador", "Mª José Soto": "Soto", "Mª José Torres": "Torres"})[n] || n;
+// Cuadrante completo: todos los tramos y días a la vez, con el orden en que sustituyen.
+function pintarLibreTabla(){
+  const act = tramoActual(), hoy = new Date().getDay() - 1;
+  let h = `<table><tr><th></th>${DIAS.map((d, i) => cabDia(d, i === hoy ? "hoy" : "")).join("")}</tr>`;
   TRAMOS.forEach((t, ti) => {
     h += `<tr><th class="h ${t.recreo ? "recreo" : ""}">${hl(t.hora)}</th>`;
     DIAS.forEach((_, di) => {
       if (t.recreo){ h += `<td class="recreo">Recreo</td>`; return; }
-      const n = libresEn(di, ti).length;
-      const cls = [sel && sel[0] === di && sel[1] === ti ? "sel" : "", ahora && ahora[0] === di && ahora[1] === ti ? "ahora" : ""].join(" ");
-      h += `<td class="${cls}"><button class="slot" data-d="${di}" data-t="${ti}" aria-label="${DIAS[di]} ${t.hora}: ${n} libres">${n} libres</button></td>`;
+      const rs = unir(ti, di, (d, x) => JSON.stringify(libresEn(d, x)));
+      if (!rs) return;
+      const lista = libresEn(di, ti), ahora = act && act[0] === di && (act[1] === ti || (rs === 2 && act[1] === ti + 1));
+      h += `<td${rowspan(rs)} class="${ahora ? "ahora" : ""}">` + (lista.length ? lista.map((x, i) =>
+        `<div class="cob"><b>${i + 1}&nbsp;${esc(nomCorto(x.nombre))}</b><small${cursoDeCelda(x.detalle) ? ' class="ap"' : ""}>${esc(x.detalle)}</small></div>`).join("") : "—") + "</td>";
     });
     h += "</tr>";
   });
   $("rejillaLibre").innerHTML = h + "</table>";
-  $("rejillaLibre").querySelectorAll(".slot").forEach(b => b.onclick = () => verLibres(+b.dataset.d, +b.dataset.t));
-}
-function verLibres(d, t, falta){
-  falta = falta || "";
-  pintarLibreRejilla([d, t]);
-  const lista = libresEn(d, t, falta);
-  const f = falta && MAESTROS.find(m => m.nombre === falta), curso = f && cursoDe(f, d, t);
-  let h = `<div class="panel"><h2>${DIAS[d]} · ${TRAMOS[t].hora}</h2>`;
-  h += `<label class="falta">¿Quién falta? <select><option value="">— elegir —</option>` +
-    MAESTROS.filter(m => cursoDe(m, d, t)).map(m => `<option value="${esc(m.nombre)}"${m.nombre === falta ? " selected" : ""}>${esc(m.nombre)} · ${esc(m.horario[d][t])}</option>`).join("") + `</select></label>`;
-  h += curso
-    ? `<p class="hint">Cubrir a ${esc(falta)} (${esc(curso)}).${lista.some(x => x.deEsaClase) ? " El apoyo de su clase va el primero." : " Su clase no tiene apoyo en este tramo."}</p>`
-    : `<p class="hint">Orden en que sustituyen, según el cuadrante de libres y apoyos.</p>`;
-  h += lista.map((x, i) => `<div class="row ${cursoDeCelda(x.detalle) ? "apoyo" : ""}"><span>${i + 1}. ${esc(x.nombre)}</span><span>${esc(x.detalle)}</span></div>`).join("");
-  if (!lista.length) h += `<p class="hint">Nadie disponible en este tramo.</p>`;
-  $("detalleLibre").innerHTML = h + "</div>";
-  const sel = $("detalleLibre").querySelectorAll("select")[0];
-  if (sel) sel.onchange = () => verLibres(d, t, sel.value);
-  $("detalleLibre").scrollIntoView({behavior: "smooth", block: "nearest"});
 }
 
 // ---- Libre: baja del día ----
-let modoLibre = "baja", bajaDia = null, bajaQuien = "";
+let modoLibre = "tramo", bajaDia = null, bajaQuien = "";
 function pintarModoLibre(){
-  $("modoLibre").innerHTML = [["baja", "Baja del día"], ["tramo", "Por tramo"]].map(([k, n]) => `<button data-k="${k}" aria-pressed="${modoLibre === k}">${n}</button>`).join("");
+  $("modoLibre").innerHTML = [["tramo", "Por tramo"], ["baja", "Sustituciones"]].map(([k, n]) => `<button data-k="${k}" aria-pressed="${modoLibre === k}">${n}</button>`).join("");
   $("modoLibre").querySelectorAll("button").forEach(b => b.onclick = () => { modoLibre = b.dataset.k; pintarModoLibre(); });
   $("libreBaja").hidden = modoLibre !== "baja";
   $("libreTramo").hidden = modoLibre !== "tramo";
@@ -892,7 +886,7 @@ pintarCursos(null);
 pintarPatios();
 pintarEF();
 pintarBiblioteca();
-pintarLibreRejilla(null);
+pintarLibreTabla();
 pintarModoLibre();
 pintarBaja();
 pintarEstado();
