@@ -70,6 +70,9 @@ td.apoyo,.ap{color:var(--aus);font-weight:600}
 .baja-fila .prop{margin:0 0 6px}
 .baja-fila .prop strong{color:var(--accent)}
 .baja-fila ol{margin:0;padding-left:20px;color:var(--muted);font-size:.92rem}
+.sub2{font-size:1.05rem;margin:22px 0 4px}
+table.sust td{text-align:left}
+table.sust td small{display:block;color:var(--muted);font-size:.76rem;margin-top:2px}
 .falta{display:block;margin:6px 0 10px;font-size:.9rem;color:var(--muted)}
 .falta select{font:inherit;margin-top:6px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);max-width:100%;width:100%}
 .grupo h3{margin:14px 0 2px;font-size:1rem;color:var(--accent)}
@@ -105,6 +108,8 @@ th.hoy{box-shadow:inset 0 -3px 0 #e0a100}
   th.h{font-size:.7rem;padding:5px 3px;white-space:nowrap}
   #t4 table{min-width:0}
   #t4 th.h{white-space:normal;font-size:.72rem}
+  #t4 table.sust td,#t4 table.sust th{font-size:.86rem;padding:7px 8px}
+  #t4 table.sust td small{font-size:.72rem}
   #t3 td,#t4 td,#t7 td{font-size:.68rem}
   #t3 td small,#t7 small,.chip{font-size:.62rem}
   #t3 td small.ref{letter-spacing:-.01em}
@@ -281,6 +286,24 @@ const COBERTURA = {
   "4,5": [["Paloma", "3º Inglés"], ["Susi", "1º Plástica"], ["Guada", "6º C. Medio"], ["Inma", "Inf. 4 años"], ["Paula", "Coord. Ciclo"], ["Antonio Dorador", "AP. Familias"]],
   "4,6": [["Paloma", "2º C. Medio"], ["Guada", "6º C. Medio"], ["Inma", "Inf. 4 años"], ["Paula", "Coord. Ciclo"], ["Antonio Dorador", "AP. Familias"]],
 };
+
+// Quién sustituye a quién en el recreo cuando falta el día que le toca vigilar ("paralelos para las ausencias", primer día).
+// Para las ausencias largas se va rotando en el orden de esta lista. "" = sin sustituto indicado.
+const PARALELOS_RECREO = [
+  ["Susi", "Mª José Soto"],
+  ["Mª José Soto", "Susi"],
+  ["Paula", "Paloma"],
+  ["José", "Eli"],
+  ["Lorena", "Inma"],
+  ["Paloma", "Paula"],
+  ["Inma", "Lorena"],
+  ["Guada", "Comodín de Infantil"],
+  ["Eli", "José"],
+  ["Carmen", "Comodín de Infantil"],
+  ["Loli", ""],
+  ["Maribel", ""],
+  ["Celia", ""],
+];
 </script>
 <!-- ======================================================= -->
 
@@ -292,7 +315,7 @@ const COBERTURA = {
     <button role="tab" id="tab1" aria-selected="false" aria-controls="t1">Maestros</button>
     <button role="tab" id="tab2" aria-selected="false" aria-controls="t2">Tramos</button>
     <button role="tab" id="tab3" aria-selected="false" aria-controls="t3">Cursos</button>
-    <button role="tab" id="tab4" aria-selected="false" aria-controls="t4">Patios</button>
+    <button role="tab" id="tab4" aria-selected="false" aria-controls="t4">Recreos</button>
     <button role="tab" id="tab5" aria-selected="false" aria-controls="t5">Ed. Física</button>
     <button role="tab" id="tab7" aria-selected="false" aria-controls="t7">Biblioteca</button>
     <button role="tab" id="tab6" aria-selected="false" aria-controls="t6">Libre</button>
@@ -315,7 +338,7 @@ const COBERTURA = {
     <div class="names" id="cursos"></div>
     <div id="horarioCurso"><p class="hint">Pulsa un curso para ver su horario semanal, con las asignaturas y los maestros de cada tramo.</p></div>
   </section>
-  <section id="t4" role="tabpanel" hidden><div id="tablaPatios"></div></section>
+  <section id="t4" role="tabpanel" hidden><div id="tablaPatios"></div><div id="tablaParalelos"></div></section>
   <section id="t5" role="tabpanel" hidden><div id="tablaEF"></div></section>
   <section id="t7" role="tabpanel" hidden><div id="tablaBiblio"></div></section>
   <section id="t6" role="tabpanel" hidden>
@@ -583,6 +606,16 @@ function pintarPatios(){
   $("tablaPatios").innerHTML = h + "</table></div>";
 }
 
+function pintarParalelos(){
+  const dias = n => PATIO.map((dia, d) => Object.values(dia).flat().includes(n) ? DIAS[d].slice(0, 3) : "").filter(Boolean).join(", ");
+  let h = `<h2 class="sub2">Si falta alguien en el recreo</h2><p class="hint">Quién sustituye a quién cuando falta el día que le toca vigilar (primer día de ausencia). Para las ausencias largas se va rotando en el orden de esta lista.</p>` +
+    `<div class="wrap"><table class="sust"><tr><th>Si falta</th><th>Sustituye</th></tr>`;
+  PARALELOS_RECREO.forEach(([n, rep]) => {
+    h += `<tr><td>${esc(n)}<small>Vigila: ${esc(dias(n) || "—")}</small></td>` + (rep ? `<td>${esc(rep)}</td>` : `<td class="libre">Sin indicar</td>`) + `</tr>`;
+  });
+  $("tablaParalelos").innerHTML = h + "</table></div>";
+}
+
 // ---- Pestaña 5: Educación Física ----
 function pintarEF(){
   const profes = EF_PROFES.map(n => MAESTROS.find(m => m.nombre === n)).filter(Boolean);
@@ -677,7 +710,7 @@ function pintarModoLibre(){
 function pintarBaja(){
   if (bajaDia === null){ const w = new Date().getDay() - 1; bajaDia = w >= 0 && w <= 4 ? w : 0; }
   const d = bajaDia;
-  const dan = MAESTROS.filter(m => TRAMOS.some((t, ti) => !t.recreo && cursoDe(m, d, ti)));
+  const dan = MAESTROS.filter(m => !(m.noEsta && m.noEsta.includes(d)) && (patio(m, d) || TRAMOS.some((t, ti) => !t.recreo && cursoDe(m, d, ti))));
   if (!dan.some(m => m.nombre === bajaQuien)) bajaQuien = "";
   let h = `<p class="hint">Elige el día y quién falta: te digo, tramo a tramo, quién sustituye y en qué orden, según el cuadrante de libres y apoyos.</p>` +
     `<div class="names" id="diasBaja">` + DIAS.map((n, i) => `<button data-d="${i}" aria-pressed="${i === d}">${n}</button>`).join("") + `</div>` +
@@ -693,10 +726,26 @@ function pintarBaja(){
       if (ant && ant.clave === clave && UNIR_TRAMOS.includes(ti) && ant.tramos.includes(UNIR_TRAMOS[0]) && ti === UNIR_TRAMOS[1]) ant.tramos.push(ti);   // 13:00-13:30 y 13:30-14:00 iguales: una sola fila
       else filas.push({tramos: [ti], celda: m.horario[d][ti], curso, lista, clave});
     });
-    const pat = patio(m, d);
+    const pat = patio(m, d), ri = TRAMOS.findIndex(t => t.recreo);
     h += `<h2>${esc(bajaQuien)} · ${DIAS[d]}</h2>`;
     texto = `Baja de ${bajaQuien} (${DIAS[d]}):`;
+    // Tarjeta del patio (si le toca vigilar ese día): va en su sitio, entre las clases de antes y de después del recreo
+    let tarjeta = null;
+    if (pat){
+      const par = PARALELOS_RECREO.find(([n]) => n === bajaQuien), sust = par ? par[1] : "";
+      const r = sust && MAESTROS.find(x => x.nombre === sust);
+      const aviso = (r && ((r.noEsta && r.noEsta.includes(d)) ? ` Ojo: ${sust} no viene ese día.` : Object.values(PATIO[d]).flat().includes(sust) ? ` Ojo: ${sust} ya tiene patio ese día.` : "")) || "";
+      const horaR = TRAMOS[ri].hora;
+      tarjeta = {
+        html: `<div class="panel baja-fila"><h3>${horaR} · Recreo · ${esc(pat)}</h3>` +
+          (sust ? `<p class="prop">Sustituye: <strong>${esc(sust)}</strong></p><p class="hint">Según la tabla de paralelos del recreo.${esc(aviso)}</p>`
+                : `<p class="hint">Sin sustituto indicado en la tabla de paralelos. Sala de profesores: ${esc(salaProfesores(d).join(", "))}.</p>`) + `</div>`,
+        txt: `\n${horaR} · Recreo · ${pat}: ${sust || "por cubrir"}`};
+    }
+    let puesta = !tarjeta;
+    const ponerRecreo = () => { if (!puesta){ h += tarjeta.html; texto += tarjeta.txt; puesta = true; } };
     filas.forEach(f => {
+      if (f.tramos[0] > ri) ponerRecreo();
       const horaTxt = TRAMOS[f.tramos[0]].hora.split(" – ")[0] + " – " + TRAMOS[f.tramos[f.tramos.length - 1]].hora.split(" – ")[1];
       const prop = f.lista.length ? f.lista[0].nombre : "";
       const orden = f.lista.map(x => `<li><strong>${esc(x.nombre)}</strong> · ${esc(x.detalle)}</li>`).join("");
@@ -705,10 +754,8 @@ function pintarBaja(){
       texto += `\n${horaTxt} · ${f.celda}: ${prop || "sin cobertura"}`;
     });
     if (!filas.length) h += `<p class="hint">Ese día no da clase a ningún curso.</p>`;
-    if (pat){
-      h += `<div class="panel baja-fila"><h3>Recreo · ${esc(pat)}</h3><p class="hint">Hay que cubrir su patio. Sala de profesores: ${esc(salaProfesores(d).join(", "))}.</p></div>`;
-      texto += `\nRecreo · ${pat}: por cubrir`;
-    }
+    ponerRecreo();                                           // si no hay clases después del recreo, va al final
+
     h += `<button class="btn" id="copiarBaja">Copiar para enviar</button>`;
   }
   $("libreBaja").innerHTML = h;
@@ -862,6 +909,20 @@ function revisar(){
       vistos[x] = 1;
     }));
   });
+  // 5) Paralelos del recreo
+  const par = [], conPatio = n => PATIO.map((dia, d) => Object.values(dia).flat().includes(n) ? d : -1).filter(d => d >= 0);
+  PARALELOS_RECREO.forEach(([n, rep]) => {
+    if (!conocidos.has(n)){ par.push(`"${n}" no existe en la lista de maestros.`); return; }
+    if (!rep || /^Comodín/.test(rep)) return;
+    const r = MAESTROS.find(x => x.nombre === rep);
+    if (!r){ par.push(`"${rep}" (sustituto de ${n}) no existe en la lista de maestros.`); return; }
+    conPatio(n).forEach(d => {
+      if (r.noEsta && r.noEsta.includes(d)) par.push(`${n} tiene patio el ${DIAS[d].toLowerCase()}, pero su sustituto ${rep} no viene ese día.`);
+      else if (Object.values(PATIO[d]).flat().includes(rep)) par.push(`${n} tiene patio el ${DIAS[d].toLowerCase()}, pero su sustituto ${rep} también tiene patio ese día.`);
+    });
+  });
+  const enTabla = new Set(PARALELOS_RECREO.map(x => x[0]));
+  new Set(PATIO.flatMap(dia => Object.values(dia).flat())).forEach(n => { if (!enTabla.has(n)) par.push(`${n} tiene patio pero no está en la tabla de paralelos.`); });
   // unir 13:00-13:30 y 13:30-14:00 cuando el aviso es el mismo
   const un = [];
   av.forEach(a => {
@@ -870,13 +931,13 @@ function revisar(){
     else un.push(Object.assign({fin: a.ti}, a));
   });
   return {avisos: un.map(a => ({grupo: a.grupo, texto: `${a.sujeto} · ${DIAS[a.d]} ${hora(a.ti).split(" – ")[0]} – ${hora(a.fin).split(" – ")[1]}: ${a.msg}`})),
-          config: config.map(c => ({grupo: "Nombre desconocido", texto: c}))};
+          config: config.map(c => ({grupo: "Nombre desconocido", texto: c})).concat(par.map(t => ({grupo: "Paralelos del recreo", texto: t})))};
 }
 function pintarRevision(){
   const r = revisar(), todo = r.avisos.concat(r.config);
   $("revisionDatos").innerHTML = `<details class="estado"><summary>Revisión de horarios (${todo.length ? todo.length + " aviso" + (todo.length === 1 ? "" : "s") : "sin avisos"})</summary>` +
     (todo.length ? todo.map(a => `<div class="row"><span><span class="aviso-tipo">${esc(a.grupo)}</span><small>${esc(a.texto)}</small></span></div>`).join("")
-      : `<p class="nota">Todo cuadra. Se comprueba que cada maestro y su curso digan lo mismo, que cada clase tenga maestro, que la Religión esté cubierta, que la biblioteca tenga a alguien, que el cuadrante de libres y apoyos coincida con los horarios y que los nombres de las listas existan.</p>`) +
+      : `<p class="nota">Todo cuadra. Se comprueba que cada maestro y su curso digan lo mismo, que cada clase tenga maestro, que la Religión esté cubierta, que la biblioteca tenga a alguien, que el cuadrante de libres y apoyos coincida con los horarios, que los sustitutos del recreo no coincidan con su propio patio y que los nombres de las listas existan.</p>`) +
     `</details>`;
 }
 
@@ -903,6 +964,7 @@ pintarNombres(-1);
 pintarRejilla(null);
 pintarCursos(null);
 pintarPatios();
+pintarParalelos();
 pintarEF();
 pintarBiblioteca();
 pintarLibreTabla();
