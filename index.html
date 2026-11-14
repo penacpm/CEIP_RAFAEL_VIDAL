@@ -12,16 +12,18 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>CEIP RAFAEL VIDAL 26/27</title>
 <style>
-:root{--bg:#f5f7fa;--card:#fff;--ink:#1b2733;--muted:#6b7a89;--line:#d9e0e7;--accent:#1f5f8b;--accent-soft:#e3eef6;--free:#eef1f4;--recreo:#fdf0d5;--aus:#a32d2d;--aus-bg:#fbe4e4;--verde:#e0f0dc;--on-accent:#fff}
-@media (prefers-color-scheme:dark){:root{--bg:#141a21;--card:#1d252e;--ink:#e6ecf1;--muted:#93a3b3;--line:#303b47;--accent:#6db3e0;--accent-soft:#23384a;--free:#232c36;--recreo:#3b3220;--aus:#f2a0a0;--aus-bg:#472626;--verde:#27402b;--on-accent:#0f1a24}}
+:root{color-scheme:light;--bg:#f5f7fa;--card:#fff;--ink:#1b2733;--muted:#6b7a89;--line:#d9e0e7;--accent:#1f5f8b;--accent-soft:#e3eef6;--free:#eef1f4;--recreo:#fdf0d5;--aus:#a32d2d;--aus-bg:#fbe4e4;--verde:#e0f0dc;--on-accent:#fff}
+@media (prefers-color-scheme:dark){:root:not([data-tema="claro"]){--bg:#141a21;--card:#1d252e;--ink:#e6ecf1;--muted:#93a3b3;--line:#303b47;--accent:#6db3e0;--accent-soft:#23384a;--free:#232c36;--recreo:#3b3220;--aus:#f2a0a0;--aus-bg:#472626;--verde:#27402b;--on-accent:#0f1a24;color-scheme:dark}}
+:root[data-tema="oscuro"]{--bg:#141a21;--card:#1d252e;--ink:#e6ecf1;--muted:#93a3b3;--line:#303b47;--accent:#6db3e0;--accent-soft:#23384a;--free:#232c36;--recreo:#3b3220;--aus:#f2a0a0;--aus-bg:#472626;--verde:#27402b;--on-accent:#0f1a24;color-scheme:dark}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{padding:20px 16px 0;max-width:960px;margin:0 auto}
+header{padding:14px 16px 0;max-width:960px;margin:0 auto}
+.tema{display:flex;justify-content:flex-end;gap:6px;margin-bottom:8px}
+.tema button{font:inherit;font-size:.78rem;padding:5px 11px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--muted);cursor:pointer}
+.tema button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
 h1{font-size:1.4rem;margin:0 0 12px}
 nav{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding-bottom:12px}
-nav #tab7{grid-column:span 2}
-nav button.largo{grid-column:1 / -1}
-@media (min-width:720px){nav{grid-template-columns:repeat(9,1fr)}nav #tab7{grid-column:auto}nav button.largo{grid-column:span 2}}
+@media (min-width:720px){nav{grid-template-columns:repeat(8,1fr)}}
 nav button{font:inherit;font-size:.85rem;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 2px;cursor:pointer;color:var(--muted);text-align:center}
 nav button[aria-selected=true]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
 main{max-width:960px;margin:0 auto;padding:16px}
@@ -31,7 +33,7 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .names button[aria-pressed=true]{background:var(--accent);color:#fff;border-color:var(--accent)}
 .wrap{overflow-x:auto}
 table{border-collapse:collapse;width:100%;min-width:640px;background:var(--card)}
-th,td{border:1px solid var(--line);padding:8px;text-align:center;font-size:.92rem}
+th,td{border:1px solid var(--line);box-shadow:inset 0 0 0 .25px var(--line);padding:8px;text-align:center;font-size:.92rem}
 th{background:var(--accent-soft)}
 th.h{white-space:nowrap;text-align:left;font-weight:600}
 td.libre{background:var(--free);color:var(--muted)}
@@ -63,6 +65,11 @@ td.apoyo,.ap{color:var(--aus);font-weight:600}
 .cob b{display:block;font-size:.78rem;overflow-wrap:normal;hyphens:manual;word-break:normal}
 .cob small{display:block;color:var(--muted);font-size:.66rem;line-height:1.2}
 .cob small.ap{color:var(--aus);font-weight:600}
+.baja-fila{margin-top:12px}
+.baja-fila h3{margin:0 0 4px;font-size:1rem}
+.baja-fila .prop{margin:0 0 6px}
+.baja-fila .prop strong{color:var(--accent)}
+.baja-fila ol{margin:0;padding-left:20px;color:var(--muted);font-size:.92rem}
 .falta{display:block;margin:6px 0 10px;font-size:.9rem;color:var(--muted)}
 .falta select{font:inherit;margin-top:6px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);max-width:100%;width:100%}
 .grupo h3{margin:14px 0 2px;font-size:1rem;color:var(--accent)}
@@ -90,11 +97,6 @@ th.hoy{box-shadow:inset 0 -3px 0 #e0a100}
 .row.actual span:first-child{color:var(--ink)}
 .mi .linea{margin:4px 0}
 .aviso-tipo{display:inline-block;font-size:.72rem;font-weight:600;color:var(--aus);background:var(--aus-bg);border-radius:6px;padding:1px 6px;margin-bottom:2px}
-.baja-fila{margin-top:12px}
-.baja-fila h3{margin:0 0 4px;font-size:1rem}
-.baja-fila .prop{margin:0 0 6px}
-.baja-fila .prop strong{color:var(--accent)}
-.baja-fila ol{margin:0;padding-left:20px;color:var(--muted);font-size:.92rem}
 .btn{font:inherit;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer;margin-top:14px}
 @media (max-width:600px){
   .dl{display:none}.dc{display:inline}
@@ -245,7 +247,7 @@ const PENDIENTES = {
 };
 
 // Cuadrante de libres y apoyos: por día y tramo ("día,tramo": 0=L..4=V; tramo = posición en TRAMOS), las personas
-// EN EL ORDEN EN QUE SUSTITUYEN, con lo que tienen en ese tramo. Es lo que usa la pestaña LIBRE/SUSTITUCIONES.
+// EN EL ORDEN EN QUE SUSTITUYEN, con lo que tienen en ese tramo. Es lo que usa la pestaña Libre.
 // Si cambia el cuadrante, se edita aquí; la "Revisión de horarios" avisa si no coincide con los horarios de cada maestro.
 const COBERTURA = {
   "0,0": [["Guada", "4º Lengua"], ["Susi", "Coord. Ciclo"], ["Maribel", "Coord. Ciclo"], ["Inma", "Coord. Eq. Orientación"], ["Antonio Dorador", "AP. Familias"], ["Eli", "Func. Direcc"]],
@@ -283,6 +285,7 @@ const COBERTURA = {
 <!-- ======================================================= -->
 
 <header>
+  <div class="tema" id="tema"></div>
   <h1>CEIP RAFAEL VIDAL 26/27</h1>
   <nav role="tablist">
     <button role="tab" id="tab0" aria-selected="true" aria-controls="t0">Ahora</button>
@@ -292,7 +295,7 @@ const COBERTURA = {
     <button role="tab" id="tab4" aria-selected="false" aria-controls="t4">Patios</button>
     <button role="tab" id="tab5" aria-selected="false" aria-controls="t5">Ed. Física</button>
     <button role="tab" id="tab7" aria-selected="false" aria-controls="t7">Biblioteca</button>
-    <button role="tab" id="tab6" aria-selected="false" aria-controls="t6" class="largo">LIBRE/SUSTITUCIONES</button>
+    <button role="tab" id="tab6" aria-selected="false" aria-controls="t6">Libre</button>
   </nav>
 </header>
 <main>
@@ -331,6 +334,22 @@ MAESTROS.forEach(m => m.vacio = m.horario.flat().every(x => !x));
 MAESTROS.sort((a, b) => a.nombre.localeCompare(b.nombre, "es", {sensitivity:"base"}));
 
 const $ = id => document.getElementById(id);
+
+// ---- Modo claro / oscuro (se recuerda en este móvil; sin elegir, sigue al del teléfono) ----
+const GUARDAR_TEMA = "ceipvidal-tema";
+const raiz = document.documentElement || {getAttribute(){ return null; }, setAttribute(){}};
+try { const g = localStorage.getItem(GUARDAR_TEMA); if (g === "claro" || g === "oscuro") raiz.setAttribute("data-tema", g); } catch (e) {}
+const temaActual = () => raiz.getAttribute("data-tema") || (typeof matchMedia === "function" && matchMedia("(prefers-color-scheme: dark)").matches ? "oscuro" : "claro");
+function pintarTema(){
+  const t = temaActual();
+  if (document.querySelector){ const mt = document.querySelector('meta[name="theme-color"]'); if (mt) mt.setAttribute("content", t === "oscuro" ? "#141a21" : "#1f5f8b"); }
+  $("tema").innerHTML = [["claro", "☀️ Claro"], ["oscuro", "🌙 Oscuro"]].map(([k, n]) => `<button data-t="${k}" aria-pressed="${t === k}">${n}</button>`).join("");
+  $("tema").querySelectorAll("button").forEach(b => b.onclick = () => {
+    raiz.setAttribute("data-tema", b.dataset.t);
+    try { localStorage.setItem(GUARDAR_TEMA, b.dataset.t); } catch (e) {}
+    pintarTema();
+  });
+}
 const hl = h => h.replace(" – ", "<br>");   // hora en dos líneas: ocupa menos ancho
 const cabDia = (d, cls) => `<th${cls ? ` class="${cls}"` : ""}><span class="dl">${d}</span><span class="dc">${d.slice(0, 3)}</span></th>`;
 // En el móvil, las palabras muy largas se acortan para que la semana quepa entera.
@@ -892,6 +911,7 @@ pintarBaja();
 pintarEstado();
 pintarRevision();
 pintarMiDia();
+pintarTema();
 pintarAhora();
 setInterval(() => { if (!$("t0").hidden){ pintarAhora(); if (miNombre && !editandoMi) pintarMiDia(); } }, 60000);   // la pestaña "Ahora" se actualiza sola
 
