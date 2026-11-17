@@ -168,7 +168,7 @@ const MAESTROS = [
   {nombre:"Guada", horario:[["4º Lengua", "6º Lengua", "5º Lengua", "", "4º Plástica", "2º Mates", "2º Mates"], ["5º Mates", "6º Lengua", "3º Lengua", "", "2º Lengua", "1º C. Medio", "1º C. Medio"], ["3º Lengua", "6º Mates", "5º Mates", "", "6º Ed. Valores", "2º C. Medio", "2º C. Medio"], ["4º Lengua", "6º Mates", "4º Atedu", "", "4º C. Medio", "2º C. Medio", "2º C. Medio"], ["1º Lengua", "3º Mates", "5º Lengua", "", "4º Atedu", "6º C. Medio", "6º C. Medio"]]},
   {nombre:"Carmen", horario:[["Inf. 3 años", "Ref. 3º Lengua", "3º Inglés", "", "2º Inglés", "4º Inglés", "4º Inglés"], ["1º Inglés", "Inf. 4 años", "5º Inglés", "", "4º Inglés", "2º Inglés", "2º Inglés"], ["Inf. 4 años", "Ref. 2º Mates", "4º Inglés", "", "5º Inglés", "Inf. 5 años", "Inf. 5 años"], ["Inf. 3 años", "Ref. 1º Mates", "1º Inglés", "", "3º Inglés", "5º Inglés", "5º Inglés"], ["Inf. 5 años", "Ref. 2º Mates", "1º Inglés", "", "2º Inglés", "3º Inglés", "3º Inglés"]]},
   {nombre:"Mª José Torres", noEsta:[1,2], horario:[["Religión 2º", "Religión 1º", "Religión 6º", "", "Religión 5º", "Religión 3º", "Religión Inf. 3 años"], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["Religión 3º", "Religión Inf. 5 años", "Religión 4º", "", "Religión 5º", "Religión 1º", "Religión Inf. 4 años"], ["Religión Inf. 4 años", "Religión Inf. 3 años", "Religión 6º", "", "Religión 4º", "Religión 2º", "Religión Inf. 5 años"]]},   // noEsta: días que no asiste (0=L, 1=M, 2=X, 3=J, 4=V)
-  {nombre:"Inma", horario:[["Coord. Eq. Orientación", "", "", "", "", "PT 2º", "PT 2º"], ["", "", "", "", "", "PT 6º Lingüística", "PT 6º Lingüística"], ["", "", "PT 3º", "", "", "", ""], ["", "", "", "", "", "", ""], ["PT 3º", "PT 3º", "", "", "", "PT Inf. 4 años", "PT Inf. 4 años"]]},
+  {nombre:"Inma", horario:[["Coord. Eq. Orientación", "PT 5º Lengua", "PT Inf. 4 años", "", "PT Inf. 5 años", "PT Inf. 5 años", "PT 2º Mates"], ["PT 5º Mates", "PT 5º Lengua", "PT 4º Lengua", "", "PT 3º Lengua", "PT 6º ALCT", "PT 6º ALCT"], ["PT 6º Lengua", "PT 6º Mates", "PT 2º Mates", "", "PT 1º Mates", "PT 1º Lengua", "PT 1º Lengua"], ["PT 2º Lengua", "PT 2º Mates", "PT Inf. 4 años", "", "PT 4º C. Medio", "PT 2º C. Medio", "PT 2º C. Medio"], ["PT 3º Lengua", "PT 3º Mates", "PT 4º Mates", "", "PT Inf. 4 años", "PT Inf. 4 años", "PT Inf. 4 años"]]},
   {nombre:"Ana", noEsta:[1,2,3,4], horario:VACIO()},   // solo viene los lunes; pendiente su horario de los lunes
   {nombre:"Elena", noEsta:[1,2,3,4], horario:[["Sala de profesores", "Sala de profesores", "Sala de profesores", "", "Sala de profesores", "Sala de profesores", "Sala de profesores"], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""], ["", "", "", "", "", "", ""]]},   // orientadora: solo viene los lunes (en la sala de profesores)
 ];
@@ -427,7 +427,7 @@ function claveEspecialista(c){
   const mc = c.match(/Inf\. \d años|\dº/);
   if (!mc) return c;
   const extra = c.slice(c.indexOf(mc[0]) + mc[0].length).replace(/^[\s·-]+/, "").trim();
-  return extra || mc[0];
+  return extra && !esAsignatura(extra) ? extra : mc[0];
 }
 function resumenMaestro(m){
   if (m.vacio && !m.noEsta) return "";
@@ -559,7 +559,7 @@ function profesDe(curso, d, t){
   return {clase: clase.map(m => m.nombre), refuerzo: ref.map(m => m.nombre), sep: mixto ? " / " : ", ",
           especialistas: especialistas.map(m => {
             const c = celda(m), extra = c.slice(c.indexOf(curso) + curso.length).replace(/^[\s·-]+/, "").trim();   // p. ej. "Lingüística"
-            return ESPECIALISTAS[m.nombre] + ": " + m.nombre + (extra ? " (" + extra + ")" : "");
+            return ESPECIALISTAS[m.nombre] + ": " + m.nombre + (extra && !esAsignatura(extra) ? " (" + extra + ")" : "");
           })};
 }
 function profesHTML(p){
@@ -838,6 +838,7 @@ function pintarMiDia(){
 // ---- Revisión automática de los horarios ----
 const normS = s => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\./g, "").replace(/\s+/g, " ").trim();
 const ALIAS = [[/^(mates|matematicas)$/, "matematicas"], [/^c (del )?medio$/, "c del medio"], [/^(religion|atedu|religion ?\/ ?atedu)$/, "religion atedu"]];
+const esAsignatura = t => ["lengua", "matematicas", "c del medio", "ingles", "ed fisica", "plastica", "musica", "frances", "ed valores", "robotica", "religion atedu"].includes(canon(t));
 const canon = s => { const n = normS(s); for (const [re, v] of ALIAS) if (re.test(n)) return v; return n; };
 // Partes de una casilla de maestro que se refieren a un curso: [{curso, materia}]
 function partesCelda(v){
